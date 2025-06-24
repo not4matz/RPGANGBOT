@@ -7,6 +7,11 @@ module.exports = {
         console.log(`   • Members: ${guild.memberCount}`);
         console.log(`   • Owner: ${guild.ownerId}`);
         
+        // Update member count status
+        if (guild.client.updateMemberCountStatus) {
+            guild.client.updateMemberCountStatus(guild.client);
+        }
+        
         // Try to send a welcome message to the system channel or first text channel
         const welcomeChannel = guild.systemChannel || 
                               guild.channels.cache.find(channel => 

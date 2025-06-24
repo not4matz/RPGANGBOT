@@ -113,7 +113,7 @@ module.exports = {
             }
 
             await interaction.reply({
-                content: `✅ **Bot status updated!**\n${statusText}`,
+                content: `✅ **Bot status updated!**\n${statusText}\n\n⚠️ *Note: The status will automatically return to showing member count in 5 minutes, or use \`/clearstatus\` to restore it immediately.*`,
                 ephemeral: true
             });
 

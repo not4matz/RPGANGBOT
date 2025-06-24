@@ -1,5 +1,25 @@
 const { Events, ActivityType } = require('discord.js');
 
+// Function to update member count status
+function updateMemberCountStatus(client) {
+    try {
+        // Calculate total member count across all guilds
+        let totalMembers = 0;
+        client.guilds.cache.forEach(guild => {
+            totalMembers += guild.memberCount;
+        });
+
+        // Set the status to show member count
+        client.user.setActivity(`${totalMembers.toLocaleString()} Members`, { 
+            type: ActivityType.Watching 
+        });
+
+        console.log(`📊 Status updated: Watching ${totalMembers.toLocaleString()} Members`);
+    } catch (error) {
+        console.error('❌ Error updating member count status:', error);
+    }
+}
+
 module.exports = {
     name: Events.ClientReady,
     once: true,
@@ -10,23 +30,15 @@ module.exports = {
         console.log(`   • Users: ${client.users.cache.size}`);
         console.log(`   • Commands: ${client.commands.size}`);
         
-        // Set rotating status messages
-        const activities = [
-            { name: 'with Discord.js', type: ActivityType.Playing },
-            { name: 'your commands', type: ActivityType.Listening },
-            { name: 'over the server', type: ActivityType.Watching },
-            { name: '/help for commands', type: ActivityType.Playing }
-        ];
+        // Set initial member count status
+        updateMemberCountStatus(client);
         
-        let currentActivity = 0;
-        
-        // Set initial activity
-        client.user.setActivity(activities[currentActivity]);
-        
-        // Rotate activities every 30 seconds
+        // Update member count status every 5 minutes
         setInterval(() => {
-            currentActivity = (currentActivity + 1) % activities.length;
-            client.user.setActivity(activities[currentActivity]);
-        }, 30000);
+            updateMemberCountStatus(client);
+        }, 300000); // 5 minutes = 300,000ms
+
+        // Store the update function on the client for use in other events
+        client.updateMemberCountStatus = updateMemberCountStatus;
     },
 };

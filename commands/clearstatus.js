@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clearstatus')
-        .setDescription('🔒 [OWNER ONLY] Clear the bot\'s activity status'),
+        .setDescription(' [OWNER ONLY] Restore the default member count status'),
     
     async execute(interaction) {
         // Check if user is bot owner
@@ -13,20 +13,25 @@ module.exports = {
         }
 
         try {
-            // Clear the activity by setting it to null
-            await interaction.client.user.setActivity(null);
+            // Restore member count status
+            if (interaction.client.updateMemberCountStatus) {
+                interaction.client.updateMemberCountStatus(interaction.client);
+            } else {
+                // Fallback if function not available
+                await interaction.client.user.setActivity(null);
+            }
 
             await interaction.reply({
-                content: '✅ **Bot status cleared!**\nThe bot no longer shows any activity.',
+                content: ' **Status restored to default!**\nThe bot is now showing the member count again.',
                 ephemeral: true
             });
 
-            console.log(`🎭 Bot status cleared by ${interaction.user.tag}`);
+            console.log(` Bot status restored to member count by ${interaction.user.tag}`);
 
         } catch (error) {
-            console.error('Error clearing bot status:', error);
+            console.error('Error restoring bot status:', error);
             await interaction.reply({
-                content: '❌ Failed to clear bot status!',
+                content: ' Failed to restore bot status!',
                 ephemeral: true
             });
         }
