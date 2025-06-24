@@ -20,9 +20,11 @@ const CONFIG = {
 function getXPForLevel(level) {
     if (level <= 1) return 0;
     
-    // Level 2 needs 50 XP, Level 3 needs 100 XP, Level 4 needs 150 XP, etc.
-    // Formula: (level - 1) * 50
-    return (level - 1) * CONFIG.XP_INCREMENT;
+    // Cumulative XP system: Level 2 = 50, Level 3 = 100, Level 4 = 200, Level 5 = 350, etc.
+    // Each level requires: 50 * level_number XP to advance
+    // Formula: Sum of (50 * i) for i from 1 to (level-1)
+    // This equals: 50 * (level-1) * level / 2
+    return CONFIG.BASE_XP * (level - 1) * level / 2;
 }
 
 /**
@@ -33,8 +35,12 @@ function getXPForLevel(level) {
 function getLevelFromXP(xp) {
     if (xp < CONFIG.BASE_XP) return 1;
     
-    // Since each level needs +50 XP: level = Math.floor(xp / 50) + 1
-    return Math.floor(xp / CONFIG.XP_INCREMENT) + 1;
+    // Since XP requirement grows, we need to find the level by iteration
+    let level = 1;
+    while (getXPForLevel(level + 1) <= xp) {
+        level++;
+    }
+    return level;
 }
 
 /**

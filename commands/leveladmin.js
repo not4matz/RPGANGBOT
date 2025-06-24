@@ -158,21 +158,19 @@ async function handleSetXP(interaction) {
         });
     }
 
-    // Get or create user
+    // Get current user data for comparison
     let userData = await database.getUser(user.id, guildId);
     if (!userData) {
+        // Create user if they don't exist
         await database.upsertUser(user.id, guildId, 0);
-        userData = await database.getUser(user.id, guildId);
+        userData = { xp: 0, level: 1 };
     }
 
     // Calculate new level
     const newLevel = getLevelFromXP(xp);
     
-    // Update XP and level
-    await database.db.run(
-        'UPDATE users SET xp = ?, level = ?, updated_at = CURRENT_TIMESTAMP WHERE user_id = ? AND guild_id = ?',
-        [xp, newLevel, user.id, guildId]
-    );
+    // Update XP and level using the proper database method
+    await database.setUserXP(user.id, guildId, xp, newLevel);
 
     const embed = new EmbedBuilder()
         .setTitle('✅ XP Updated')
@@ -200,22 +198,22 @@ async function handleAddXP(interaction) {
         });
     }
 
-    // Get or create user
+    // Get current user data
     let userData = await database.getUser(user.id, guildId);
     if (!userData) {
+        // Create user with the XP to add
         await database.upsertUser(user.id, guildId, xpToAdd);
         userData = { xp: 0, level: 1 };
     } else {
+        // Add XP to existing user
         await database.upsertUser(user.id, guildId, xpToAdd);
     }
 
     const newXP = userData.xp + xpToAdd;
     const newLevel = getLevelFromXP(newXP);
     
-    // Update level if changed
-    if (newLevel !== userData.level) {
-        await database.updateUserLevel(user.id, guildId, newLevel);
-    }
+    // Update the level to match the new XP total
+    await database.setUserXP(user.id, guildId, newXP, newLevel);
 
     const embed = new EmbedBuilder()
         .setTitle('✅ XP Added')
