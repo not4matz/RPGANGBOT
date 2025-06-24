@@ -15,6 +15,9 @@ class VoiceXPTracker {
         }, 60000); // 60 seconds
 
         console.log('🎤 Voice XP tracker started');
+
+        // Check for users already in voice channels on startup
+        this.checkStartupVoiceUsers();
     }
 
     stop() {
@@ -101,6 +104,65 @@ class VoiceXPTracker {
             }
         } catch (error) {
             console.error(`Error processing voice XP for guild ${guild.name}:`, error);
+        }
+    }
+
+    async checkStartupVoiceUsers() {
+        try {
+            console.log('🔍 Checking for users already in voice channels...');
+            let totalUsersFound = 0;
+
+            for (const guild of this.client.guilds.cache.values()) {
+                let guildUsersFound = 0;
+
+                // Get all voice channels in the guild
+                const voiceChannels = guild.channels.cache.filter(channel => channel.type === 2); // GUILD_VOICE
+
+                for (const channel of voiceChannels.values()) {
+                    // Get all non-bot members in this voice channel
+                    const membersInChannel = channel.members.filter(member => !member.user.bot);
+
+                    for (const member of membersInChannel.values()) {
+                        // Skip if user is muted/deafened (optional)
+                        if (member.voice.mute || member.voice.deaf || member.voice.selfMute || member.voice.selfDeaf) {
+                            continue;
+                        }
+
+                        // Skip if user is alone in the channel
+                        if (channel.members.filter(m => !m.user.bot).size <= 1) {
+                            continue;
+                        }
+
+                        // Check if user already has a voice join time (shouldn't happen on startup, but safety check)
+                        const existingData = await database.getUser(member.user.id, guild.id);
+                        if (existingData && existingData.voice_join_time && existingData.voice_join_time > 0) {
+                            continue; // User already tracked
+                        }
+
+                        // Set voice join time to current time
+                        const now = Date.now();
+                        await database.setVoiceJoinTime(member.user.id, guild.id, now);
+                        
+                        guildUsersFound++;
+                        totalUsersFound++;
+                        
+                        console.log(`🎤 Registered ${member.user.tag} in voice channel "${channel.name}" (${guild.name})`);
+                    }
+                }
+
+                if (guildUsersFound > 0) {
+                    console.log(`✅ Found ${guildUsersFound} users in voice channels in ${guild.name}`);
+                }
+            }
+
+            if (totalUsersFound > 0) {
+                console.log(`🎤 Total users registered for voice XP tracking: ${totalUsersFound}`);
+            } else {
+                console.log('ℹ️ No users found in voice channels on startup');
+            }
+
+        } catch (error) {
+            console.error('Error checking startup voice users:', error);
         }
     }
 

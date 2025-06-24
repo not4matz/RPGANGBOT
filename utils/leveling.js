@@ -4,9 +4,9 @@
 
 // XP configuration
 const CONFIG = {
-    XP_PER_MESSAGE: 5,
+    XP_PER_MESSAGE: 1,
     XP_PER_VOICE_MINUTE: 5,
-    MESSAGE_COOLDOWN: 60000, // 1 minute cooldown between message XP gains
+    MESSAGE_COOLDOWN: 300000, // 5 minute cooldown between message XP gains
     VOICE_INTERVAL: 60000,   // 1 minute intervals for voice XP
     BASE_XP: 50,             // XP needed for level 2
     XP_INCREMENT: 50         // Additional XP needed per level
