@@ -52,9 +52,9 @@ function getLevelFromXP(xp) {
 function getXPProgress(currentXP, currentLevel) {
     const currentLevelXP = getXPForLevel(currentLevel);
     const nextLevelXP = getXPForLevel(currentLevel + 1);
-    const xpInCurrentLevel = currentXP - currentLevelXP;
+    const xpInCurrentLevel = Math.max(0, currentXP - currentLevelXP); // Ensure non-negative
     const xpNeededForNext = nextLevelXP - currentLevelXP;
-    const xpRemaining = nextLevelXP - currentXP;
+    const xpRemaining = Math.max(0, nextLevelXP - currentXP); // Ensure non-negative
     
     return {
         currentLevelXP: xpInCurrentLevel,
@@ -90,16 +90,21 @@ function canGainMessageXP(lastMessageTime) {
 }
 
 /**
- * Create a progress bar
+ * Create progress bar
  * @param {number} current - Current value
  * @param {number} max - Maximum value
  * @param {number} length - Length of progress bar
  * @returns {string} - Progress bar string
  */
 function createProgressBar(current, max, length = 10) {
-    const progress = Math.min(current / max, 1);
-    const filled = Math.floor(progress * length);
-    const empty = length - filled;
+    // Safety checks to prevent negative values
+    const safeCurrent = Math.max(0, current || 0);
+    const safeMax = Math.max(1, max || 1); // Ensure max is at least 1 to prevent division by zero
+    const safeLength = Math.max(1, length || 10);
+    
+    const progress = Math.min(safeCurrent / safeMax, 1);
+    const filled = Math.floor(progress * safeLength);
+    const empty = Math.max(0, safeLength - filled); // Ensure non-negative
     
     return '█'.repeat(filled) + '░'.repeat(empty);
 }
@@ -143,6 +148,29 @@ function getLevelBadge(level) {
     return '🌟';                   // Star for <5
 }
 
+/**
+ * Validate and fix user level data consistency
+ * @param {object} userData - User data from database
+ * @returns {object} - Corrected user data
+ */
+function validateUserData(userData) {
+    if (!userData) return null;
+    
+    // Calculate what level the user should be based on their XP
+    const correctLevel = getLevelFromXP(userData.xp);
+    
+    // If the stored level is incorrect, return corrected data
+    if (userData.level !== correctLevel) {
+        console.log(`⚠️ Level inconsistency detected for user ${userData.user_id}: stored level ${userData.level}, should be ${correctLevel} (XP: ${userData.xp})`);
+        return {
+            ...userData,
+            level: correctLevel
+        };
+    }
+    
+    return userData;
+}
+
 module.exports = {
     CONFIG,
     getXPForLevel,
@@ -154,5 +182,6 @@ module.exports = {
     createProgressBar,
     formatXP,
     getLevelColor,
-    getLevelBadge
+    getLevelBadge,
+    validateUserData
 };

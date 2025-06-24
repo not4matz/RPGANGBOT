@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
-const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge } = require('../utils/leveling');
+const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData } = require('../utils/leveling');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -27,20 +27,34 @@ module.exports = {
             await interaction.deferReply();
 
             // Get user data
-            const userData = await database.getUser(targetUser.id, guildId);
+            let userData = await database.getUser(targetUser.id, guildId);
             
             if (!userData) {
-                const embed = new EmbedBuilder()
-                    .setTitle('📊 Level Information')
-                    .setDescription(`${targetUser} hasn't sent any messages yet!`)
-                    .setColor('#5865f2')
-                    .setThumbnail(targetUser.displayAvatarURL());
+                // Create default level 0 data for users who haven't sent messages yet
+                userData = {
+                    user_id: targetUser.id,
+                    guild_id: guildId,
+                    xp: 0,
+                    level: 1,
+                    total_messages: 0,
+                    voice_time_minutes: 0,
+                    last_message_time: 0,
+                    voice_join_time: 0,
+                    last_voice_xp_time: 0
+                };
+            }
 
-                return await interaction.editReply({ embeds: [embed] });
+            // Validate and fix user data consistency
+            userData = validateUserData(userData);
+            
+            // If data was corrected, update the database
+            if (userData.level !== (await database.getUser(targetUser.id, guildId))?.level) {
+                await database.setUserXP(targetUser.id, guildId, userData.xp);
+                console.log(`✅ Fixed level data for user ${targetUser.id}`);
             }
 
             // Get user rank
-            const rank = await database.getUserRank(targetUser.id, guildId);
+            const rank = await database.getUserRank(targetUser.id, guildId) || 'Unranked';
             
             // Calculate progress
             const progress = getXPProgress(userData.xp, userData.level);
@@ -60,7 +74,7 @@ module.exports = {
                     },
                     {
                         name: '🏆 Rank',
-                        value: `**#${rank || 'N/A'}**`,
+                        value: rank ? `**#${rank}**` : '**Unranked**',
                         inline: true
                     },
                     {

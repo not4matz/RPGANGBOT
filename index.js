@@ -12,6 +12,7 @@ process.on('uncaughtException', error => {
 const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
+const ChannelUpdater = require('./utils/channelUpdater');
 require('dotenv').config();
 
 // Create a new client instance
@@ -96,6 +97,13 @@ client.once(Events.ClientReady, () => {
     
     // Set bot activity
     client.user.setActivity('with Discord.js', { type: 'PLAYING' });
+    
+    // Initialize and start channel updater
+    const channelUpdater = new ChannelUpdater(client);
+    channelUpdater.start();
+    
+    // Store reference for potential future use
+    client.channelUpdater = channelUpdater;
 });
 
 // Handle slash command interactions
@@ -140,12 +148,18 @@ process.on('unhandledRejection', error => {
 // Graceful shutdown
 process.on('SIGINT', () => {
     console.log('🛑 Received SIGINT. Graceful shutdown...');
+    if (client.channelUpdater) {
+        client.channelUpdater.stop();
+    }
     client.destroy();
     process.exit(0);
 });
 
 process.on('SIGTERM', () => {
     console.log('🛑 Received SIGTERM. Graceful shutdown...');
+    if (client.channelUpdater) {
+        client.channelUpdater.stop();
+    }
     client.destroy();
     process.exit(0);
 });

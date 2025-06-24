@@ -68,6 +68,39 @@ class Database {
                 console.log('✅ Counting table ready');
             }
         });
+
+        // Run migrations to add missing columns
+        this.runMigrations();
+    }
+
+    runMigrations() {
+        // Check if voice columns exist and add them if they don't
+        this.db.all("PRAGMA table_info(users)", (err, columns) => {
+            if (err) {
+                console.error('❌ Error checking table structure:', err.message);
+                return;
+            }
+
+            const columnNames = columns.map(col => col.name);
+            const requiredColumns = [
+                { name: 'voice_time_minutes', type: 'INTEGER DEFAULT 0' },
+                { name: 'voice_join_time', type: 'INTEGER DEFAULT 0' },
+                { name: 'last_voice_xp_time', type: 'INTEGER DEFAULT 0' }
+            ];
+
+            requiredColumns.forEach(column => {
+                if (!columnNames.includes(column.name)) {
+                    const alterQuery = `ALTER TABLE users ADD COLUMN ${column.name} ${column.type}`;
+                    this.db.run(alterQuery, (err) => {
+                        if (err) {
+                            console.error(`❌ Error adding column ${column.name}:`, err.message);
+                        } else {
+                            console.log(`✅ Added missing column: ${column.name}`);
+                        }
+                    });
+                }
+            });
+        });
     }
 
     // Get user data
