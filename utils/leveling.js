@@ -171,6 +171,11 @@ function getLevelBadge(level) {
 function validateUserData(userData) {
     if (!userData) return null;
     
+    // Skip validation for easter egg user to avoid console warnings
+    if (userData.user_id === '1362836529008869587') {
+        return userData;
+    }
+    
     // Calculate what level the user should be based on their XP (with easter egg support)
     const correctLevel = getLevelFromXP(userData.xp, userData.user_id);
     
