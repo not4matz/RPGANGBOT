@@ -1,4 +1,5 @@
 const { Events, ActivityType } = require('discord.js');
+const VoiceXPTracker = require('../utils/voiceXPTracker');
 
 // Function to update member count status
 function updateMemberCountStatus(client) {
@@ -24,21 +25,26 @@ module.exports = {
     name: Events.ClientReady,
     once: true,
     execute(client) {
-        console.log(`🎉 ${client.user.tag} is now online!`);
-        console.log(`📊 Bot Statistics:`);
-        console.log(`   • Servers: ${client.guilds.cache.size}`);
-        console.log(`   • Users: ${client.users.cache.size}`);
-        console.log(`   • Commands: ${client.commands.size}`);
+        console.log(`✅ Ready! Logged in as ${client.user.tag}`);
         
-        // Set initial member count status
+        // Initialize member count status
         updateMemberCountStatus(client);
         
-        // Update member count status every 5 minutes
+        // Update member count every 5 minutes
         setInterval(() => {
             updateMemberCountStatus(client);
-        }, 300000); // 5 minutes = 300,000ms
+        }, 5 * 60 * 1000);
+        
+        // Store the function on client for other events to use
+        client.updateMemberCountStatus = () => updateMemberCountStatus(client);
 
-        // Store the update function on the client for use in other events
-        client.updateMemberCountStatus = updateMemberCountStatus;
+        // Initialize voice XP tracker
+        const voiceTracker = new VoiceXPTracker(client);
+        voiceTracker.start();
+        
+        // Store tracker on client for cleanup if needed
+        client.voiceXPTracker = voiceTracker;
+        
+        console.log('🎤 Voice XP tracking system initialized');
     },
 };
