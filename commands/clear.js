@@ -1,9 +1,10 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
+const { checkOwner } = require('../utils/ownerCheck');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clear')
-        .setDescription('Delete a specified number of messages')
+        .setDescription('🔒 [OWNER ONLY] Delete a specified number of messages')
         .addIntegerOption(option =>
             option.setName('amount')
                 .setDescription('Number of messages to delete (1-100)')
@@ -13,6 +14,11 @@ module.exports = {
         .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages),
     
     async execute(interaction) {
+        // Check if user is bot owner
+        if (!(await checkOwner(interaction))) {
+            return; // checkOwner already sent the error message
+        }
+
         const amount = interaction.options.getInteger('amount');
 
         // Check if user has permission
