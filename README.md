@@ -222,5 +222,5 @@ If you need help with the bot:
 4. Create an issue on GitHub
 
 ---
-
+.
 **Happy coding! 🎉**
