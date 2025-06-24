@@ -1,5 +1,5 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { CONFIG } = require('../utils/leveling');
+const { CONFIG, getXPForLevel } = require('../utils/leveling');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -26,8 +26,8 @@ module.exports = {
                         inline: false
                     },
                     {
-                        name: '📈 Level Progression',
-                        value: `• **Level 1**: 0 XP (starting point)\n• **Level 2**: ${CONFIG.BASE_XP} XP needed\n• **Level 3**: ${CONFIG.BASE_XP * 2} XP needed\n• **Level 4**: ${CONFIG.BASE_XP * 3} XP needed\n• Each level needs **+${CONFIG.BASE_XP} more XP** than the previous`,
+                        name: '📈 Exponential Level Progression',
+                        value: `• **Level 1**: 0 XP (starting point)\n• **Level 2**: ${getXPForLevel(2)} XP needed\n• **Level 5**: ${getXPForLevel(5)} XP needed\n• **Level 10**: ${getXPForLevel(10)} XP needed\n• **Level 25**: ${getXPForLevel(25)} XP needed\n• Each level requires **${CONFIG.MULTIPLIER}x more XP** than the previous gap!`,
                         inline: false
                     }
                 )
@@ -53,8 +53,13 @@ module.exports = {
                         inline: true
                     },
                     {
-                        name: '🎯 Level Goals',
-                        value: `• **Level 2**: ${Math.ceil(CONFIG.BASE_XP / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(CONFIG.BASE_XP / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 5**: ${Math.ceil((CONFIG.BASE_XP * 10) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil((CONFIG.BASE_XP * 10) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 10**: ${Math.ceil((CONFIG.BASE_XP * 45) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil((CONFIG.BASE_XP * 45) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice`,
+                        name: '🎯 Level Goals (Exponential)',
+                        value: `• **Level 2**: ${Math.ceil(getXPForLevel(2) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(2) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 5**: ${Math.ceil(getXPForLevel(5) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(5) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 10**: ${Math.ceil(getXPForLevel(10) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(10) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice`,
+                        inline: false
+                    },
+                    {
+                        name: '⚡ Exponential Growth',
+                        value: `Higher levels require **exponentially more XP**!\n• Level 25: ${getXPForLevel(25).toLocaleString()} XP (${Math.round(getXPForLevel(25) / 5 / 60 * 10) / 10} hours)\n• Level 50: ${getXPForLevel(50).toLocaleString()} XP (${Math.round(getXPForLevel(50) / 5 / 60 * 10) / 10} hours)\n• Level 100: ${getXPForLevel(100).toLocaleString()} XP (${Math.round(getXPForLevel(100) / 5 / 60 * 10) / 10} hours) 🏆`,
                         inline: false
                     }
                 )

@@ -8,8 +8,8 @@ const CONFIG = {
     XP_PER_VOICE_MINUTE: 5,
     MESSAGE_COOLDOWN: 300000, // 5 minute cooldown between message XP gains
     VOICE_INTERVAL: 60000,   // 1 minute intervals for voice XP
-    BASE_XP: 50,             // XP needed for level 2
-    XP_INCREMENT: 50         // Additional XP needed per level
+    BASE_XP: 35,             // XP needed for level 2
+    MULTIPLIER: 1.041        // Exponential multiplier (1.041x growth per level)
 };
 
 /**
@@ -20,11 +20,18 @@ const CONFIG = {
 function getXPForLevel(level) {
     if (level <= 1) return 0;
     
-    // Cumulative XP system: Level 2 = 50, Level 3 = 100, Level 4 = 200, Level 5 = 350, etc.
-    // Each level requires: 50 * level_number XP to advance
-    // Formula: Sum of (50 * i) for i from 1 to (level-1)
-    // This equals: 50 * (level-1) * level / 2
-    return CONFIG.BASE_XP * (level - 1) * level / 2;
+    // Exponential XP system: Each level requires exponentially more XP
+    // Level 2: 100 XP
+    // Level 3: 100 + 150 = 250 XP  
+    // Level 4: 250 + 225 = 475 XP
+    // Level 5: 475 + 337.5 = 812.5 XP (rounded to 813)
+    // Formula: Sum of (BASE_XP * MULTIPLIER^(i-2)) for i from 2 to level
+    
+    let totalXP = 0;
+    for (let i = 2; i <= level; i++) {
+        totalXP += Math.floor(CONFIG.BASE_XP * Math.pow(CONFIG.MULTIPLIER, i - 2));
+    }
+    return totalXP;
 }
 
 /**
@@ -35,10 +42,12 @@ function getXPForLevel(level) {
 function getLevelFromXP(xp) {
     if (xp < CONFIG.BASE_XP) return 1;
     
-    // Since XP requirement grows, we need to find the level by iteration
+    // Find the highest level where required XP <= current XP
     let level = 1;
     while (getXPForLevel(level + 1) <= xp) {
         level++;
+        // Safety check to prevent infinite loops for very high XP
+        if (level > 200) break;
     }
     return level;
 }

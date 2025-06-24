@@ -117,31 +117,42 @@ class VoiceXPTracker {
 
                 // Get all voice channels in the guild
                 const voiceChannels = guild.channels.cache.filter(channel => channel.type === 2); // GUILD_VOICE
+                console.log(`🔍 Found ${voiceChannels.size} voice channels in ${guild.name}`);
 
                 for (const channel of voiceChannels.values()) {
                     // Get all non-bot members in this voice channel
                     const membersInChannel = channel.members.filter(member => !member.user.bot);
+                    
+                    if (membersInChannel.size > 0) {
+                        console.log(`🔍 Voice channel "${channel.name}" has ${membersInChannel.size} non-bot members`);
+                    }
 
                     for (const member of membersInChannel.values()) {
+                        console.log(`🔍 Processing user: ${member.user.tag} in channel "${channel.name}"`);
+                        
                         // Skip if user is muted/deafened (optional)
                         if (member.voice.mute || member.voice.deaf || member.voice.selfMute || member.voice.selfDeaf) {
+                            console.log(`⏭️ Skipping ${member.user.tag} - user is muted/deafened`);
                             continue;
                         }
 
                         // Skip if user is alone in the channel
                         if (channel.members.filter(m => !m.user.bot).size <= 1) {
+                            console.log(`⏭️ Skipping ${member.user.tag} - user is alone in channel (${channel.members.filter(m => !m.user.bot).size} users)`);
                             continue;
                         }
 
                         // Check if user already has a voice join time (shouldn't happen on startup, but safety check)
                         const existingData = await database.getUser(member.user.id, guild.id);
                         if (existingData && existingData.voice_join_time && existingData.voice_join_time > 0) {
+                            console.log(`⏭️ Skipping ${member.user.tag} - already has voice join time: ${existingData.voice_join_time}`);
                             continue; // User already tracked
                         }
 
                         // Set voice join time to current time
                         const now = Date.now();
-                        await database.setVoiceJoinTime(member.user.id, guild.id, now);
+                        console.log(`🎤 Setting voice join time for ${member.user.tag} to ${now}`);
+                        await database.updateVoiceJoinTime(member.user.id, guild.id, now);
                         
                         guildUsersFound++;
                         totalUsersFound++;
@@ -168,31 +179,33 @@ class VoiceXPTracker {
 
     async sendVoiceLevelUpMessage(guild, member, newLevel, userData) {
         try {
-            // Try to find a suitable channel to send the level up message
-            let targetChannel = null;
-
-            // Priority order: general, chat, main, first text channel
-            const channelNames = ['general', 'chat', 'main', 'level-ups', 'bot-commands'];
+            // Send to specific level-up channel
+            const levelUpChannelId = '1361198962488381490';
+            let targetChannel = guild.channels.cache.get(levelUpChannelId);
             
-            for (const name of channelNames) {
-                targetChannel = guild.channels.cache.find(ch => 
-                    ch.isTextBased() && 
-                    ch.name.toLowerCase().includes(name) &&
-                    ch.permissionsFor(guild.members.me).has(['SendMessages', 'EmbedLinks'])
-                );
-                if (targetChannel) break;
-            }
-
-            // If no named channel found, use the first available text channel
+            // Fallback channel search if specific channel not found
             if (!targetChannel) {
-                targetChannel = guild.channels.cache.find(ch => 
-                    ch.isTextBased() && 
-                    ch.permissionsFor(guild.members.me).has(['SendMessages', 'EmbedLinks'])
-                );
+                console.warn(`Level-up channel ${levelUpChannelId} not found, searching for fallback`);
+                
+                // Priority order: general, chat, main, first text channel
+                const channelNames = ['general', 'chat', 'main', 'level-ups', 'bot-commands'];
+                
+                for (const name of channelNames) {
+                    targetChannel = guild.channels.cache.find(ch => 
+                        ch.isTextBased() && 
+                        ch.name.toLowerCase().includes(name)
+                    );
+                    if (targetChannel) break;
+                }
+                
+                // Last resort: first available text channel
+                if (!targetChannel) {
+                    targetChannel = guild.channels.cache.find(ch => ch.isTextBased());
+                }
             }
-
+            
             if (!targetChannel) {
-                console.log(`No suitable channel found for level up message in ${guild.name}`);
+                console.error('No suitable channel found for voice level up message');
                 return;
             }
 

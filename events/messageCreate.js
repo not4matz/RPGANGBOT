@@ -60,11 +60,28 @@ module.exports = {
                     .setThumbnail(message.author.displayAvatarURL())
                     .setTimestamp();
 
-                // Send level up message
+                // Send level up message to specific channel
+                const levelUpChannelId = '1361198962488381490';
+                let targetChannel = message.guild.channels.cache.get(levelUpChannelId);
+                
+                // Fallback to current channel if specific channel not found
+                if (!targetChannel) {
+                    targetChannel = message.channel;
+                    console.warn(`Level-up channel ${levelUpChannelId} not found, using current channel`);
+                }
+                
                 try {
-                    await message.channel.send({ embeds: [levelUpEmbed] });
+                    await targetChannel.send({ embeds: [levelUpEmbed] });
                 } catch (error) {
                     console.error('Error sending level up message:', error);
+                    // Try fallback to current channel if target channel failed
+                    if (targetChannel !== message.channel) {
+                        try {
+                            await message.channel.send({ embeds: [levelUpEmbed] });
+                        } catch (fallbackError) {
+                            console.error('Error sending fallback level up message:', fallbackError);
+                        }
+                    }
                 }
 
                 console.log(`🎉 ${message.author.tag} leveled up to ${newLevel} in ${message.guild.name}`);
