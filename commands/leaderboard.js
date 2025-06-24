@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
-const { formatXP, getLevelColor, getLevelBadge } = require('../utils/leveling');
+const { formatXP, getLevelColor, getLevelBadge, getLevelFromXP } = require('../utils/leveling');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -52,12 +52,15 @@ module.exports = {
                 const rank = offset + i + 1;
                 const user = await interaction.client.users.fetch(userData.user_id).catch(() => null);
                 
+                // Calculate display level (with easter egg support)
+                const displayLevel = getLevelFromXP(userData.xp, userData.user_id);
+                
                 const medal = rank <= 3 ? medals[rank - 1] : `**${rank}.**`;
                 const username = user ? user.displayName : 'Unknown User';
-                const badge = getLevelBadge(userData.level);
+                const badge = getLevelBadge(displayLevel);
                 
                 leaderboardText += `${medal} ${badge} **${username}**\n`;
-                leaderboardText += `   Level ${userData.level} • ${formatXP(userData.xp)} XP • ${userData.total_messages.toLocaleString()} messages • ${Math.floor(userData.voice_time_minutes || 0)} minutes in voice\n\n`;
+                leaderboardText += `   Level ${displayLevel} • ${formatXP(userData.xp)} XP • ${userData.total_messages.toLocaleString()} messages • ${Math.floor(userData.voice_time_minutes || 0)} minutes in voice\n\n`;
             }
 
             // Get user's rank if they're not on current page
@@ -66,7 +69,8 @@ module.exports = {
             if (userRank && (userRank < offset + 1 || userRank > offset + usersPerPage)) {
                 const userData = await database.getUser(interaction.user.id, interaction.guild.id);
                 if (userData) {
-                    userRankText = `\n**Your Rank:** #${userRank} • Level ${userData.level} • ${formatXP(userData.xp)} XP`;
+                    const userDisplayLevel = getLevelFromXP(userData.xp, interaction.user.id);
+                    userRankText = `\n**Your Rank:** #${userRank} • Level ${userDisplayLevel} • ${formatXP(userData.xp)} XP`;
                 }
             }
 

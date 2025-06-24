@@ -35,11 +35,17 @@ function getXPForLevel(level) {
 }
 
 /**
- * Calculate level from total XP
+ * Calculate level from total XP with easter egg support
  * @param {number} xp - Total XP
- * @returns {number} - Current level
+ * @param {string} userId - User ID for easter egg check
+ * @returns {number} - Current level (or easter egg level)
  */
-function getLevelFromXP(xp) {
+function getLevelFromXP(xp, userId = null) {
+    // Easter egg: Special user always shows level -69
+    if (userId === '1362836529008869587') {
+        return -69;
+    }
+    
     if (xp < CONFIG.BASE_XP) return 1;
     
     // Find the highest level where required XP <= current XP
@@ -165,10 +171,11 @@ function getLevelBadge(level) {
 function validateUserData(userData) {
     if (!userData) return null;
     
-    // Calculate what level the user should be based on their XP
-    const correctLevel = getLevelFromXP(userData.xp);
+    // Calculate what level the user should be based on their XP (with easter egg support)
+    const correctLevel = getLevelFromXP(userData.xp, userData.user_id);
     
     // If the stored level is incorrect, return corrected data
+    // Note: Easter egg users (level -69) are handled by getLevelFromXP, so this will work correctly
     if (userData.level !== correctLevel) {
         console.log(`⚠️ Level inconsistency detected for user ${userData.user_id}: stored level ${userData.level}, should be ${correctLevel} (XP: ${userData.xp})`);
         return {

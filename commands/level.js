@@ -1,6 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
-const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData } = require('../utils/leveling');
+const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData, getLevelFromXP } = require('../utils/leveling');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -56,20 +56,23 @@ module.exports = {
             // Get user rank
             const rank = await database.getUserRank(targetUser.id, guildId) || 'Unranked';
             
-            // Calculate progress
+            // Calculate display level (with easter egg support)
+            const displayLevel = getLevelFromXP(userData.xp, targetUser.id);
+            
+            // Calculate progress (use actual level for progress calculations)
             const progress = getXPProgress(userData.xp, userData.level);
             const progressBar = createProgressBar(progress.currentLevelXP, progress.xpNeededForNext, 15);
 
             // Create embed
             const embed = new EmbedBuilder()
-                .setTitle(`${getLevelBadge(userData.level)} Level Information`)
+                .setTitle(`${getLevelBadge(displayLevel)} Level Information`)
                 .setDescription(`**${targetUser.displayName}**'s leveling stats`)
-                .setColor(getLevelColor(userData.level))
+                .setColor(getLevelColor(displayLevel))
                 .setThumbnail(targetUser.displayAvatarURL())
                 .addFields(
                     {
                         name: '📈 Level',
-                        value: `**${userData.level}**`,
+                        value: `**${displayLevel}**`,
                         inline: true
                     },
                     {
@@ -99,12 +102,16 @@ module.exports = {
                     },
                     {
                         name: '🎯 Progress to Next Level',
-                        value: `**${formatXP(progress.currentLevelXP)}** / **${formatXP(progress.xpNeededForNext)}** XP\n${progressBar} ${progress.progress}%`,
+                        value: displayLevel === -69 ? 
+                            `**∞** / **∞** XP\n${'🔥'.repeat(15)} ∞%\n*You are eternal at level -69!*` :
+                            `**${formatXP(progress.currentLevelXP)}** / **${formatXP(progress.xpNeededForNext)}** XP\n${progressBar} ${progress.progress}%`,
                         inline: false
                     },
                     {
                         name: '📊 XP Remaining',
-                        value: `**${formatXP(progress.xpRemaining)}** XP needed for Level ${userData.level + 1}`,
+                        value: displayLevel === -69 ? 
+                            `**∞** XP needed to escape the void...` :
+                            `**${formatXP(progress.xpRemaining)}** XP needed for Level ${userData.level + 1}`,
                         inline: false
                     }
                 )

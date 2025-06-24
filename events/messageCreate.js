@@ -37,7 +37,7 @@ module.exports = {
             if (!updatedUser) return;
 
             // Calculate new level
-            const newLevel = getLevelFromXP(updatedUser.xp);
+            const newLevel = getLevelFromXP(updatedUser.xp, userId);
             const oldLevel = updatedUser.level;
 
             // Check if user leveled up

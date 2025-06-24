@@ -167,7 +167,7 @@ async function handleSetXP(interaction) {
     }
 
     // Calculate new level
-    const newLevel = getLevelFromXP(xp);
+    const newLevel = getLevelFromXP(xp, user.id);
     
     // Update XP and level using the proper database method
     await database.setUserXP(user.id, guildId, xp, newLevel);
@@ -210,7 +210,7 @@ async function handleAddXP(interaction) {
     }
 
     const newXP = userData.xp + xpToAdd;
-    const newLevel = getLevelFromXP(newXP);
+    const newLevel = getLevelFromXP(newXP, user.id);
     
     // Update the level to match the new XP total
     await database.setUserXP(user.id, guildId, newXP, newLevel);

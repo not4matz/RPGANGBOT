@@ -89,7 +89,7 @@ class VoiceXPTracker {
                     if (!updatedUserData) continue;
 
                     // Check for level up
-                    const newLevel = getLevelFromXP(updatedUserData.xp);
+                    const newLevel = getLevelFromXP(updatedUserData.xp, userData.user_id);
                     
                     if (newLevel > oldLevel) {
                         // Update level in database
