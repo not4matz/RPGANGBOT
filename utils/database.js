@@ -38,11 +38,34 @@ class Database {
             )
         `;
 
+        const createCountingTable = `
+            CREATE TABLE IF NOT EXISTS counting (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                guild_id TEXT NOT NULL,
+                channel_id TEXT NOT NULL,
+                current_number INTEGER DEFAULT 0,
+                last_user_id TEXT,
+                highest_number INTEGER DEFAULT 0,
+                total_counts INTEGER DEFAULT 0,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(guild_id, channel_id)
+            )
+        `;
+
         this.db.run(createUsersTable, (err) => {
             if (err) {
                 console.error('❌ Error creating users table:', err.message);
             } else {
                 console.log('✅ Users table ready');
+            }
+        });
+
+        this.db.run(createCountingTable, (err) => {
+            if (err) {
+                console.error('❌ Error creating counting table:', err.message);
+            } else {
+                console.log('✅ Counting table ready');
             }
         });
     }
@@ -258,6 +281,115 @@ class Database {
             `;
             
             this.db.run(query, [userId, guildId, xp, level, xp, level], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Counting system methods
+    // Get counting data for a channel
+    getCountingData(guildId, channelId) {
+        return new Promise((resolve, reject) => {
+            const query = 'SELECT * FROM counting WHERE guild_id = ? AND channel_id = ?';
+            this.db.get(query, [guildId, channelId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    }
+
+    // Initialize counting for a channel
+    initializeCounting(guildId, channelId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO counting (guild_id, channel_id, current_number, highest_number, total_counts, updated_at)
+                VALUES (?, ?, 0, 0, 0, CURRENT_TIMESTAMP)
+                ON CONFLICT(guild_id, channel_id) DO NOTHING
+            `;
+            this.db.run(query, [guildId, channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+        });
+    }
+
+    // Update counting data
+    updateCounting(guildId, channelId, newNumber, userId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE counting 
+                SET current_number = ?, 
+                    last_user_id = ?, 
+                    highest_number = MAX(highest_number, ?),
+                    total_counts = total_counts + 1,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE guild_id = ? AND channel_id = ?
+            `;
+            this.db.run(query, [newNumber, userId, newNumber, guildId, channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Reset counting for a channel
+    resetCounting(guildId, channelId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE counting 
+                SET current_number = 0, 
+                    last_user_id = NULL,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE guild_id = ? AND channel_id = ?
+            `;
+            this.db.run(query, [guildId, channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Set counting number for a channel
+    setCountingNumber(guildId, channelId, number) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE counting 
+                SET current_number = ?, 
+                    highest_number = MAX(highest_number, ?),
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE guild_id = ? AND channel_id = ?
+            `;
+            this.db.run(query, [number, number, guildId, channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Delete counting data for a channel
+    deleteCounting(guildId, channelId) {
+        return new Promise((resolve, reject) => {
+            const query = 'DELETE FROM counting WHERE guild_id = ? AND channel_id = ?';
+            this.db.run(query, [guildId, channelId], function(err) {
                 if (err) {
                     reject(err);
                 } else {
