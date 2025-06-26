@@ -79,58 +79,65 @@ module.exports = {
                 .setDescription(`Waking up ${targetUser.username}...`)
                 .addFields(
                     { name: 'Target', value: `<@${targetUser.id}>`, inline: true },
-                    { name: 'Duration', value: '10 seconds', inline: true },
                     { name: 'Original Channel', value: originalChannel.name, inline: true }
                 )
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed] });
 
-            // Start moving user between channels immediately
+            // Move user between channels as fast as possible until rate limited
             let currentChannel = 0;
-            const moveInterval = setInterval(async () => {
+            let moveCount = 0;
+            let rateLimited = false;
+
+            const moveUser = async () => {
                 try {
                     const channelToMoveTo = currentChannel === 0 ? channel1 : channel2;
                     await member.voice.setChannel(channelToMoveTo);
                     currentChannel = currentChannel === 0 ? 1 : 0;
-                } catch (error) {
-                    console.error('Error moving user during wakeup:', error);
-                }
-            }, 500); // Move every 500ms (0.5 seconds)
-
-            // Stop after 10 seconds and move back to original channel
-            setTimeout(async () => {
-                clearInterval(moveInterval);
-                
-                try {
-                    // Move back to original channel
-                    await member.voice.setChannel(originalChannel);
-
-                    // Update the embed to show completion
-                    const completedEmbed = new EmbedBuilder()
-                        .setColor('#00ff00')
-                        .setTitle('✅ Wakeup Complete')
-                        .setDescription(`${targetUser.username} has been woken up and returned to ${originalChannel.name}.`)
-                        .addFields(
-                            { name: 'Duration', value: '10 seconds', inline: true },
-                            { name: 'Status', value: 'Completed successfully', inline: true }
-                        )
-                        .setTimestamp();
-
-                    await interaction.editReply({ embeds: [completedEmbed] });
-
-                } catch (error) {
-                    console.error('Error returning user to original channel:', error);
+                    moveCount++;
                     
-                    const errorEmbed = new EmbedBuilder()
-                        .setColor('#ff0000')
-                        .setTitle('⚠️ Wakeup Completed with Issues')
-                        .setDescription(`${targetUser.username} was woken up, but there was an issue returning them to the original channel.`)
-                        .setTimestamp();
+                    // If not rate limited, continue moving immediately
+                    if (!rateLimited) {
+                        setTimeout(moveUser, 100); // Very fast moves (100ms)
+                    }
+                } catch (error) {
+                    console.error('Rate limit hit or error during wakeup:', error);
+                    rateLimited = true;
+                    
+                    // Immediately return to original channel when rate limited
+                    try {
+                        await member.voice.setChannel(originalChannel);
+                        
+                        // Update the embed to show completion
+                        const completedEmbed = new EmbedBuilder()
+                            .setColor('#00ff00')
+                            .setTitle('✅ Wakeup Complete')
+                            .setDescription(`${targetUser.username} has been woken up and returned to ${originalChannel.name}.`)
+                            .addFields(
+                                { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
+                                { name: 'Status', value: 'Rate limit reached - returned to original channel', inline: true }
+                            )
+                            .setTimestamp();
 
-                    await interaction.editReply({ embeds: [errorEmbed] });
+                        await interaction.editReply({ embeds: [completedEmbed] });
+
+                    } catch (returnError) {
+                        console.error('Error returning user to original channel:', returnError);
+                        
+                        const errorEmbed = new EmbedBuilder()
+                            .setColor('#ff0000')
+                            .setTitle('⚠️ Wakeup Completed with Issues')
+                            .setDescription(`${targetUser.username} was woken up (${moveCount} moves), but there was an issue returning them to the original channel.`)
+                            .setTimestamp();
+
+                        await interaction.editReply({ embeds: [errorEmbed] });
+                    }
                 }
-            }, 10000); // 10 seconds
+            };
+
+            // Start the aggressive moving
+            moveUser();
 
         } catch (error) {
             console.error('Error in wakeup command:', error);
