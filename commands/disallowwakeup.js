@@ -1,10 +1,11 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
+const { checkOwner } = require('../utils/ownerCheck');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('disallowwakeup')
-        .setDescription('Disallow a user from being woken up with the /wakeup command')
+        .setDescription('Disallow a user from being woken up with the /wakeup command (Owner only)')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to disallow wakeup for')
@@ -12,6 +13,11 @@ module.exports = {
 
     async execute(interaction) {
         try {
+            // Check if user is the bot owner
+            if (!(await checkOwner(interaction))) {
+                return;
+            }
+
             const targetUser = interaction.options.getUser('user');
             const guildId = interaction.guild.id;
 

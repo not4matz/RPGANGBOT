@@ -1,10 +1,11 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
+const { checkOwner } = require('../utils/ownerCheck');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('allowwakeup')
-        .setDescription('Allow a user to be woken up with the /wakeup command')
+        .setDescription('Allow a user to be woken up with the /wakeup command (Owner only)')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to allow wakeup for')
@@ -12,19 +13,13 @@ module.exports = {
 
     async execute(interaction) {
         try {
+            // Check if user is the bot owner
+            if (!(await checkOwner(interaction))) {
+                return;
+            }
+
             const targetUser = interaction.options.getUser('user');
             const guildId = interaction.guild.id;
-
-            // Check if user is trying to allow themselves
-            if (targetUser.id === interaction.user.id) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Invalid Action')
-                    .setDescription('You cannot allow wakeup for yourself. Ask someone else to do it for you.')
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
 
             // Check if target is a bot
             if (targetUser.bot) {
