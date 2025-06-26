@@ -1,81 +1,61 @@
-require('dotenv').config();
 const { REST, Routes } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
-
-const clientId = process.env.CLIENT_ID || require('./config.json').clientId;
-const token = process.env.DISCORD_TOKEN || require('./config.json').token;
-const guildId = process.env.GUILD_ID;
+require('dotenv').config();
 
 const commands = [];
-const foldersPath = path.join(__dirname, 'commands');
-const commandFolders = fs.readdirSync(foldersPath);
+const commandsPath = path.join(__dirname, 'commands');
 
-for (const folder of commandFolders) {
-    const commandsPath = path.join(foldersPath, folder);
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
+// Check if commands directory exists
+if (!fs.existsSync(commandsPath)) {
+    console.log('❌ Commands directory not found. Please create some commands first.');
+    process.exit(1);
+}
+
+const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+
+// Load all command data
+for (const file of commandFiles) {
+    const filePath = path.join(commandsPath, file);
+    try {
         const command = require(filePath);
         if ('data' in command && 'execute' in command) {
             commands.push(command.data.toJSON());
+            console.log(`✅ Loaded command data: ${command.data.name}`);
         } else {
-            console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+            console.log(`⚠️  Command at ${filePath} is missing required "data" or "execute" property.`);
         }
+    } catch (error) {
+        console.error(`❌ Error loading command ${file}:`, error);
     }
 }
 
-const rest = new REST().setToken(token);
+// Construct and prepare an instance of the REST module
+const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
+// Deploy commands
 (async () => {
     try {
-        console.log(`Started refreshing ${commands.length} application (/) commands.`);
+        console.log(`🚀 Started refreshing ${commands.length} application (/) commands.`);
 
-        // Get existing commands
-        let existingCommands;
-        if (guildId) {
-            existingCommands = await rest.get(
-                Routes.applicationGuildCommands(clientId, guildId)
+        // Check if we should deploy globally or to a specific guild
+        if (process.env.GUILD_ID) {
+            // Deploy to specific guild (faster for development)
+            const data = await rest.put(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
+                { body: commands },
             );
+            console.log(`✅ Successfully reloaded ${data.length} guild application (/) commands.`);
         } else {
-            existingCommands = await rest.get(
-                Routes.applicationCommands(clientId)
+            // Deploy globally (takes up to 1 hour to propagate)
+            const data = await rest.put(
+                Routes.applicationCommands(process.env.CLIENT_ID),
+                { body: commands },
             );
-        }
-
-        // Delete commands that are not present locally
-        for (const cmd of existingCommands) {
-            if (!commands.some(c => c.name === cmd.name)) {
-                if (guildId) {
-                    await rest.delete(
-                        Routes.applicationGuildCommand(clientId, guildId, cmd.id)
-                    );
-                } else {
-                    await rest.delete(
-                        Routes.applicationCommand(clientId, cmd.id)
-                    );
-                }
-                console.log(`Deleted command: ${cmd.name}`);
-            }
-        }
-
-        // Deploy commands
-        let data;
-        if (guildId) {
-            data = await rest.put(
-                Routes.applicationGuildCommands(clientId, guildId),
-                { body: commands }
-            );
-            console.log(`Successfully reloaded ${data.length} guild application (/) commands.`);
-        } else {
-            data = await rest.put(
-                Routes.applicationCommands(clientId),
-                { body: commands }
-            );
-            console.log(`Successfully reloaded ${data.length} global application (/) commands.`);
-            console.log('Global commands may take up to 1 hour to propagate to all servers.');
+            console.log(`✅ Successfully reloaded ${data.length} global application (/) commands.`);
+            console.log('ℹ️  Global commands may take up to 1 hour to appear in all servers.');
         }
     } catch (error) {
-        console.error(error);
+        console.error('❌ Error deploying commands:', error);
     }
 })();

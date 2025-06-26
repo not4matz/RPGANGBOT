@@ -11,7 +11,7 @@ const WAKEUP_CHANNELS = [
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('wakeup')
-        .setDescription('Wake up a user :purple_heart: [Owner]')
+        .setDescription('💜 Move a user between voice channels to wake them up')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to wake up')

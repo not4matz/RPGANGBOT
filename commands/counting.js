@@ -1,24 +1,19 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { getCountingData } = require('../utils/database');
-const { isOwner } = require('../utils/ownerCheck');
+const database = require('../utils/database');
 
 const COUNTING_CHANNEL_ID = '1225180419402502278';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('counting')
-        .setDescription('View counting channel stats and rules :purple_heart: [Owner]'),
+        .setDescription('View counting channel information and stats'),
 
     async execute(interaction) {
-        if (!(await isOwner(interaction.user.id))) {
-            return interaction.reply({ content: 'This command is only available to the bot owner.', ephemeral: true });
-        }
-
         const guildId = interaction.guild.id;
         const channelId = COUNTING_CHANNEL_ID;
 
         try {
-            const countingData = await getCountingData(guildId, channelId);
+            const countingData = await database.getCountingData(guildId, channelId);
             
             if (!countingData) {
                 const embed = new EmbedBuilder()
