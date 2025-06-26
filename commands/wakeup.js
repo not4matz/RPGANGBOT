@@ -92,8 +92,27 @@ module.exports = {
 
             const moveUser = async () => {
                 try {
+                    // Failsafe: Check if user is still connected to voice
+                    const currentMember = await interaction.guild.members.fetch(targetUser.id);
+                    if (!currentMember.voice.channel) {
+                        console.log('User disconnected from voice during wakeup - stopping command');
+                        
+                        const disconnectedEmbed = new EmbedBuilder()
+                            .setColor('#ffff00')
+                            .setTitle('⚠️ Wakeup Stopped')
+                            .setDescription(`${targetUser.username} disconnected from voice during wakeup.`)
+                            .addFields(
+                                { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
+                                { name: 'Status', value: 'User left voice - command stopped', inline: true }
+                            )
+                            .setTimestamp();
+
+                        await interaction.editReply({ embeds: [disconnectedEmbed] });
+                        return; // Stop the recursive moving
+                    }
+
                     const channelToMoveTo = currentChannel === 0 ? channel1 : channel2;
-                    await member.voice.setChannel(channelToMoveTo);
+                    await currentMember.voice.setChannel(channelToMoveTo);
                     currentChannel = currentChannel === 0 ? 1 : 0;
                     moveCount++;
                     
@@ -105,9 +124,12 @@ module.exports = {
                     console.error('Rate limit hit or error during wakeup:', error);
                     rateLimited = true;
                     
-                    // Immediately return to original channel when rate limited
+                    // Check if user is still connected before trying to return them
                     try {
-                        await member.voice.setChannel(originalChannel);
+                        const currentMember = await interaction.guild.members.fetch(targetUser.id);
+                        if (currentMember.voice.channel) {
+                            await currentMember.voice.setChannel(originalChannel);
+                        }
                         
                         // Update the embed to show completion
                         const completedEmbed = new EmbedBuilder()
