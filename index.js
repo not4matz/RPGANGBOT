@@ -18,7 +18,6 @@ const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
 const webhook = require('./utils/webhook');
-const GitHubWebhookHandler = require('./webhooks/githubWebhook');
 
 // Create a new client instance
 const client = new Client({
@@ -94,24 +93,6 @@ const loadEvents = () => {
         }
     }
 };
-
-// Initialize GitHub webhook handler
-const githubWebhook = new GitHubWebhookHandler();
-const githubMiddleware = githubWebhook.initialize();
-
-if (githubMiddleware) {
-  const express = require('express');
-  const app = express();
-  
-  // Use GitHub webhook middleware
-  app.use(githubMiddleware);
-  
-  // Start webhook server
-  const port = process.env.WEBHOOK_PORT || 3000;
-  app.listen(port, () => {
-    console.log(`📡 GitHub webhook server running on port ${port}`);
-  });
-}
 
 // Bot ready event
 client.once(Events.ClientReady, async () => {

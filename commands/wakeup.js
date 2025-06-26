@@ -4,8 +4,8 @@ const colors = require('../utils/colors');
 
 // Voice channel IDs for wakeup
 const WAKEUP_CHANNELS = [
-    '1387902681196138567',
-    '1327435229484548126'
+    '1292438962161320008',
+    '1327435099867709521'
 ];
 
 module.exports = {

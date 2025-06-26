@@ -14,9 +14,6 @@ const fs = require('fs');
 const parentDir = path.join(__dirname, '..');
 process.chdir(parentDir);
 
-// Load environment variables
-require('dotenv').config();
-
 const webhook = require('./utils/webhook');
 
 class GitAnalyzer {
@@ -157,12 +154,8 @@ class GitAnalyzer {
         console.log('📡 Sending git update notification...');
         console.log(`📊 Stats: ${stats.filesChanged} files, +${stats.linesAdded}/-${stats.linesDeleted} lines`);
         
-        try {
-            await webhook.sendUpdateNotification(updateData);
-            console.log('✅ Git notification sent successfully');
-        } catch (error) {
-            console.error('Error sending git notification:', error.message);
-        }
+        await webhook.sendUpdateNotification(updateData);
+        console.log('✅ Git notification sent successfully');
     }
 
     /**
@@ -193,14 +186,10 @@ class GitAnalyzer {
                 timestamp: new Date()
             };
 
-            try {
-                await webhook.sendUpdateNotification(updateData);
-                console.log('✅ Commit range notification sent');
-            } catch (error) {
-                console.error('Error sending commit range notification:', error.message);
-            }
+            await webhook.sendUpdateNotification(updateData);
+            console.log('✅ Commit range notification sent');
         } catch (error) {
-            console.error('Error analyzing commit range:', error.message);
+            console.error('Error sending commit range notification:', error.message);
         }
     }
 }
