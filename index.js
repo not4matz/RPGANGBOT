@@ -1,4 +1,9 @@
 console.log("🚀 Bot script Index.js starting execution...");
+
+// Load environment variables FIRST
+require('dotenv').config();
+console.log('🔍 DEBUG: Environment loaded. Webhook URL set?', !!process.env.UPDATE_WEBHOOK_URL);
+
 // === Global Error Handlers ===
 process.on('unhandledRejection', error => {
     console.error('❌ Unhandled Promise Rejection:', error);
@@ -14,7 +19,6 @@ const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
 const webhook = require('./utils/webhook');
-require('dotenv').config();
 
 // Create a new client instance
 const client = new Client({

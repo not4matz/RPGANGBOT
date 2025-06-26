@@ -159,10 +159,14 @@ class UpdateWebhook {
      * Send bot startup notification
      */
     async sendStartupNotification() {
+        console.log('🔍 DEBUG: sendStartupNotification called');
+        console.log('🔍 DEBUG: webhook exists?', !!this.webhook);
+        console.log('🔍 DEBUG: webhookUrl:', this.webhookUrl ? 'Set' : 'Not set');
+        
         const embed = new EmbedBuilder()
             .setColor(colors.SUCCESS)
-            .setTitle('🚀 Bot Started')
-            .setDescription('**Purple Bot is now online and ready!**')
+            .setTitle('🚀 Goated Bot Started')
+            .setDescription('**Goated Bot is now online and ready!**')
             .addFields(
                 {
                     name: '⚡ **Status**',
@@ -175,16 +179,20 @@ class UpdateWebhook {
                     inline: true
                 }
             )
-            .setFooter({ text: 'Purple Bot System Monitor' })
+            .setFooter({ text: 'Goated Bot System Monitor' })
             .setTimestamp();
 
         try {
             if (this.webhook) {
+                console.log('🔍 DEBUG: Sending webhook...');
                 await this.webhook.send({ embeds: [embed] });
                 console.log('📡 Startup notification sent');
+            } else {
+                console.log('🔍 DEBUG: No webhook available');
             }
         } catch (error) {
             console.error('❌ Failed to send startup notification:', error.message);
+            console.error('🔍 DEBUG: Full error:', error);
         }
     }
 
