@@ -85,10 +85,10 @@ module.exports = {
 
             await interaction.reply({ embeds: [embed] });
 
-            // Move user between channels as fast as possible until rate limited
+            // Move user between channels for exactly 10 moves
             let currentChannel = 0;
             let moveCount = 0;
-            let rateLimited = false;
+            const maxMoves = 10;
 
             const moveUser = async () => {
                 try {
@@ -116,44 +116,71 @@ module.exports = {
                     currentChannel = currentChannel === 0 ? 1 : 0;
                     moveCount++;
                     
-                    // If not rate limited, continue moving immediately
-                    if (!rateLimited) {
-                        setTimeout(moveUser, 100); // Very fast moves (100ms)
+                    // Check if we've completed all moves
+                    if (moveCount >= maxMoves) {
+                        // Return to original channel after completing all moves
+                        try {
+                            const finalMember = await interaction.guild.members.fetch(targetUser.id);
+                            if (finalMember.voice.channel) {
+                                await finalMember.voice.setChannel(originalChannel);
+                            }
+                            
+                            // Update the embed to show completion
+                            const completedEmbed = new EmbedBuilder()
+                                .setColor('#00ff00')
+                                .setTitle('✅ Wakeup Complete')
+                                .setDescription(`${targetUser.username} has been woken up and returned to ${originalChannel.name}.`)
+                                .addFields(
+                                    { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
+                                    { name: 'Status', value: 'Completed successfully', inline: true }
+                                )
+                                .setTimestamp();
+
+                            await interaction.editReply({ embeds: [completedEmbed] });
+
+                        } catch (returnError) {
+                            console.error('Error returning user to original channel:', returnError);
+                            
+                            const errorEmbed = new EmbedBuilder()
+                                .setColor('#ff0000')
+                                .setTitle('⚠️ Wakeup Completed with Issues')
+                                .setDescription(`${targetUser.username} was woken up (${moveCount} moves), but there was an issue returning them to the original channel.`)
+                                .setTimestamp();
+
+                            await interaction.editReply({ embeds: [errorEmbed] });
+                        }
+                    } else {
+                        // Continue moving after a short delay
+                        setTimeout(moveUser, 500); // 500ms between moves for reliability
                     }
                 } catch (error) {
-                    console.error('Rate limit hit or error during wakeup:', error);
-                    rateLimited = true;
+                    console.error('Error during wakeup move:', error);
                     
-                    // Check if user is still connected before trying to return them
+                    // Try to return user to original channel on error
                     try {
                         const currentMember = await interaction.guild.members.fetch(targetUser.id);
                         if (currentMember.voice.channel) {
                             await currentMember.voice.setChannel(originalChannel);
                         }
                         
-                        // Update the embed to show completion
-                        const completedEmbed = new EmbedBuilder()
-                            .setColor('#00ff00')
-                            .setTitle('✅ Wakeup Complete')
-                            .setDescription(`${targetUser.username} has been woken up and returned to ${originalChannel.name}.`)
-                            .addFields(
-                                { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
-                                { name: 'Status', value: 'Rate limit reached - returned to original channel', inline: true }
-                            )
-                            .setTimestamp();
-
-                        await interaction.editReply({ embeds: [completedEmbed] });
-
-                    } catch (returnError) {
-                        console.error('Error returning user to original channel:', returnError);
-                        
                         const errorEmbed = new EmbedBuilder()
                             .setColor('#ff0000')
-                            .setTitle('⚠️ Wakeup Completed with Issues')
-                            .setDescription(`${targetUser.username} was woken up (${moveCount} moves), but there was an issue returning them to the original channel.`)
+                            .setTitle('⚠️ Wakeup Error')
+                            .setDescription(`Error occurred during wakeup after ${moveCount} moves. User returned to original channel.`)
                             .setTimestamp();
 
                         await interaction.editReply({ embeds: [errorEmbed] });
+
+                    } catch (returnError) {
+                        console.error('Error returning user after move error:', returnError);
+                        
+                        const finalErrorEmbed = new EmbedBuilder()
+                            .setColor('#ff0000')
+                            .setTitle('❌ Wakeup Failed')
+                            .setDescription(`Wakeup failed after ${moveCount} moves and could not return user to original channel.`)
+                            .setTimestamp();
+
+                        await interaction.editReply({ embeds: [finalErrorEmbed] });
                     }
                 }
             };
