@@ -21,13 +21,13 @@ module.exports = {
             const targetUser = interaction.options.getUser('user');
             const guildId = interaction.guild.id;
 
-            // Check if the target user has wakeup permissions
-            const permissions = await database.getWakeupPermissions(targetUser.id, guildId);
+            // Check if the COMMAND USER has wakeup permissions (not the target)
+            const permissions = await database.getWakeupPermissions(interaction.user.id, guildId);
             if (!permissions || !permissions.allowed) {
                 const embed = new EmbedBuilder()
                     .setColor('#ff0000')
                     .setTitle('❌ Permission Denied')
-                    .setDescription(`${targetUser.username} has not allowed wakeup commands.\nThey need to be added with \`/allowwakeup\` first.`)
+                    .setDescription(`You don't have permission to use the wakeup command.\nAsk the bot owner to add you with \`/allowwakeup\`.`)
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -72,20 +72,21 @@ module.exports = {
                 return interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
-            // Start the wakeup process
+            // Start the wakeup process immediately
             const embed = new EmbedBuilder()
                 .setColor('#ffff00')
                 .setTitle('⏰ Waking Up User')
-                .setDescription(`Starting wakeup sequence for ${targetUser.username}...\nMoving between channels for 10 seconds.`)
+                .setDescription(`Waking up ${targetUser.username}...`)
                 .addFields(
-                    { name: 'Original Channel', value: originalChannel.name, inline: true },
-                    { name: 'Wakeup Channels', value: `${channel1.name}\n${channel2.name}`, inline: true }
+                    { name: 'Target', value: `<@${targetUser.id}>`, inline: true },
+                    { name: 'Duration', value: '10 seconds', inline: true },
+                    { name: 'Original Channel', value: originalChannel.name, inline: true }
                 )
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed] });
 
-            // Move user between channels for 10 seconds
+            // Start moving user between channels immediately
             let currentChannel = 0;
             const moveInterval = setInterval(async () => {
                 try {
