@@ -1,83 +1,50 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const database = require('../utils/database');
 const { checkOwner } = require('../utils/ownerCheck');
+const { setWakeupPermissions } = require('../utils/database');
+const colors = require('../utils/colors');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('disallowwakeup')
-        .setDescription('Disallow a user from being woken up with the /wakeup command (Owner only)')
+        .setDescription('💜 [OWNER] Remove wakeup permissions from a user')
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('The user to disallow wakeup for')
+                .setDescription('User to remove wakeup permissions from')
                 .setRequired(true)),
-
+    
     async execute(interaction) {
+        // Check if user is the bot owner
+        if (!await checkOwner(interaction)) {
+            return;
+        }
+
+        const targetUser = interaction.options.getUser('user');
+        const guildId = interaction.guild.id;
+
         try {
-            // Check if user is the bot owner
-            if (!(await checkOwner(interaction))) {
-                return;
-            }
-
-            const targetUser = interaction.options.getUser('user');
-            const guildId = interaction.guild.id;
-
-            // Check if target is a bot
-            if (targetUser.bot) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Invalid Target')
-                    .setDescription('You cannot manage wakeup permissions for bots.')
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            // Check current permissions
-            const currentPermissions = await database.getWakeupPermissions(targetUser.id, guildId);
+            await setWakeupPermissions(targetUser.id, guildId, false);
             
-            if (!currentPermissions) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ffff00')
-                    .setTitle('⚠️ No Permissions Set')
-                    .setDescription(`${targetUser.username} doesn't have any wakeup permissions set. They are already unable to be woken up.`)
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            if (!currentPermissions.allowed) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ffff00')
-                    .setTitle('⚠️ Already Disallowed')
-                    .setDescription(`${targetUser.username} is already disallowed from being woken up.`)
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            // Set wakeup permissions to disallowed
-            await database.setWakeupPermissions(targetUser.id, guildId, false);
-
-            const embed = new EmbedBuilder()
-                .setColor('#ff0000')
-                .setTitle('🚫 Wakeup Disallowed')
-                .setDescription(`${targetUser.username} can no longer be woken up using the \`/wakeup\` command.`)
+            const successEmbed = new EmbedBuilder()
+                .setColor(colors.WARNING)
+                .setTitle('🔒 Permissions Revoked')
+                .setDescription(`${targetUser.username} no longer has permission to use the wakeup command.`)
                 .addFields(
-                    { name: 'User', value: `<@${targetUser.id}>`, inline: true },
-                    { name: 'Status', value: 'Wakeup Disallowed', inline: true },
-                    { name: 'Changed By', value: `<@${interaction.user.id}>`, inline: true }
+                    { name: '👤 User', value: `<@${targetUser.id}>`, inline: true },
+                    { name: '🎯 Permission', value: 'Wakeup Command Access', inline: true },
+                    { name: '⚡ Status', value: 'Revoked', inline: true }
                 )
+                .setThumbnail(targetUser.displayAvatarURL())
+                .setFooter({ text: 'Purple Bot Permission System' })
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed] });
-
+            await interaction.reply({ embeds: [successEmbed] });
         } catch (error) {
-            console.error('Error in disallowwakeup command:', error);
+            console.error('Error revoking wakeup permissions:', error);
             
             const errorEmbed = new EmbedBuilder()
-                .setColor('#ff0000')
-                .setTitle('❌ Error')
-                .setDescription('An error occurred while updating wakeup permissions.')
+                .setColor(colors.ERROR)
+                .setTitle('❌ Permission Error')
+                .setDescription('Failed to revoke wakeup permissions. Please try again.')
                 .setTimestamp();
 
             await interaction.reply({ embeds: [errorEmbed], ephemeral: true });

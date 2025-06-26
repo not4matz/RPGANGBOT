@@ -11,6 +11,7 @@ A comprehensive, modular Discord bot built with Discord.js v14 featuring slash c
 - **Auto-reload**: Hot reload commands during development
 - **Permission Checks**: Built-in permission validation
 - **Rich Embeds**: Beautiful message formatting
+- **Webhook Update Notifications**: Automatic notifications for code updates, deployments, and bot status changes
 
 ## 📋 Commands
 
@@ -19,6 +20,10 @@ A comprehensive, modular Discord bot built with Discord.js v14 featuring slash c
 - `/help` - Display all available commands
 - `/userinfo [user]` - Get information about a user
 - `/serverinfo` - Display server information
+- `/update notify` - Send manual update notification
+- `/update status` - Check webhook configuration and send test
+- `/update startup` - Send bot startup notification
+- `/update shutdown` - Send bot shutdown notification
 
 ### Moderation Commands
 - `/clear <amount>` - Delete multiple messages (requires Manage Messages permission)
@@ -49,6 +54,7 @@ A comprehensive, modular Discord bot built with Discord.js v14 featuring slash c
    DISCORD_TOKEN=your_bot_token_here
    CLIENT_ID=your_client_id_here
    GUILD_ID=your_guild_id_here  # Optional: for faster command deployment during development
+   UPDATE_WEBHOOK_URL=https://discord.com/api/webhooks/your_webhook_url_here
    ```
 
 5. **Deploy slash commands**
@@ -97,21 +103,94 @@ https://discord.com/api/oauth2/authorize?client_id=YOUR_CLIENT_ID&permissions=27
 ```
 MainBot/
 ├── commands/           # Slash commands
+│   ├── wakeup.js
+│   ├── allowwakeup.js
+│   ├── disallowwakeup.js
 │   ├── ping.js
 │   ├── help.js
 │   ├── userinfo.js
 │   ├── serverinfo.js
-│   └── clear.js
+│   ├── clear.js
+│   └── update.js       # Update notification management
 ├── events/            # Event handlers
 │   ├── ready.js
 │   ├── guildCreate.js
 │   └── guildDelete.js
+├── utils/             # Utility modules
+│   ├── colors.js      # Purple-black color scheme
+│   ├── webhook.js     # Update notification system
+│   ├── database.js    # Database operations
+│   └── ownerCheck.js  # Owner verification
+├── scripts/           # Automation scripts
+│   └── git-webhook.js # Git integration for auto-notifications
 ├── index.js           # Main bot file
 ├── deploy-commands.js # Command deployment script
 ├── package.json       # Dependencies and scripts
 ├── .env.example       # Environment variables template
 └── README.md         # This file
 ```
+
+## 📡 Webhook Update Notifications
+
+The bot includes a sophisticated webhook system that sends purple-themed notifications about code updates, deployments, and bot status changes.
+
+### 🔧 Setup Webhook Notifications
+
+1. **Create a Discord Webhook:**
+   - Go to your Discord channel settings
+   - Navigate to "Integrations" → "Webhooks"
+   - Click "Create Webhook"
+   - Copy the webhook URL
+
+2. **Configure Environment:**
+   ```bash
+   # Add to your .env file
+   UPDATE_WEBHOOK_URL=https://discord.com/api/webhooks/your_webhook_url_here
+   ```
+
+3. **Automatic Notifications:**
+   - Bot startup/shutdown notifications
+   - Git commit notifications (when using git-webhook.js)
+   - Manual update notifications via `/update` command
+
+### 🎨 Notification Features
+
+- **Purple-themed embeds** matching the bot's aesthetic
+- **Detailed statistics** (files changed, lines added/deleted)
+- **Author tracking** and timestamps
+- **File change lists** with truncation for large updates
+- **Status indicators** with emojis and color coding
+
+### 📊 Available Commands
+
+- `/update notify` - Send manual update notification
+- `/update status` - Check webhook configuration and send test
+- `/update startup` - Send bot startup notification
+- `/update shutdown` - Send bot shutdown notification
+
+### 🔄 Git Integration
+
+Use the included git webhook script for automatic notifications:
+
+```bash
+# Send notification for last commit
+node scripts/git-webhook.js
+
+# Send notification for commit range
+node scripts/git-webhook.js range abc123 def456
+
+# Send manual notification
+node scripts/git-webhook.js manual "Feature Update" "Added new commands"
+```
+
+### 🎯 Example Notification
+
+The webhook sends beautifully formatted purple embeds with:
+- 📊 Change statistics (files, lines added/deleted)
+- 📁 List of modified files
+- 👤 Author information and timestamps
+- 🌟 Special features and deployment status
+- 💜 Consistent purple-black branding
 
 ## 🔨 Adding New Commands
 

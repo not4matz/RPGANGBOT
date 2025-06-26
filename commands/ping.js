@@ -1,9 +1,10 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const colors = require('../utils/colors');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('ping')
-        .setDescription('Check the bot\'s latency and API response time'),
+        .setDescription('Replies with Pong and bot latency'),
     
     async execute(interaction) {
         const sent = await interaction.reply({ 
@@ -12,29 +13,34 @@ module.exports = {
         });
         
         const embed = new EmbedBuilder()
-            .setColor('#00ff00')
+            .setColor(colors.PRIMARY)
             .setTitle('🏓 Pong!')
+            .setDescription('Bot latency information')
             .addFields(
                 { 
-                    name: '📡 Websocket Heartbeat', 
-                    value: `${interaction.client.ws.ping}ms`, 
+                    name: '📡 Roundtrip Latency', 
+                    value: `\`${sent.createdTimestamp - interaction.createdTimestamp}ms\``, 
                     inline: true 
                 },
                 { 
-                    name: '🔄 Roundtrip Latency', 
-                    value: `${sent.createdTimestamp - interaction.createdTimestamp}ms`, 
+                    name: '💜 API Latency', 
+                    value: `\`${Math.round(interaction.client.ws.ping)}ms\``, 
                     inline: true 
+                },
+                {
+                    name: '⚡ Status',
+                    value: sent.createdTimestamp - interaction.createdTimestamp < 100 ? 
+                           '`Excellent`' : sent.createdTimestamp - interaction.createdTimestamp < 200 ? 
+                           '`Good`' : '`Slow`',
+                    inline: true
                 }
             )
-            .setTimestamp()
             .setFooter({ 
-                text: `Requested by ${interaction.user.tag}`, 
+                text: `Requested by ${interaction.user.username}`, 
                 iconURL: interaction.user.displayAvatarURL() 
-            });
+            })
+            .setTimestamp();
 
-        await interaction.editReply({ 
-            content: '', 
-            embeds: [embed] 
-        });
+        await interaction.editReply({ content: null, embeds: [embed] });
     },
 };

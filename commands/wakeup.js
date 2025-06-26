@@ -1,5 +1,6 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
+const colors = require('../utils/colors');
 
 // Voice channel IDs for wakeup
 const WAKEUP_CHANNELS = [
@@ -10,7 +11,7 @@ const WAKEUP_CHANNELS = [
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('wakeup')
-        .setDescription('Wake up a user by moving them between voice channels')
+        .setDescription('💜 Move a user between voice channels to wake them up')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to wake up')
@@ -25,9 +26,15 @@ module.exports = {
             const permissions = await database.getWakeupPermissions(interaction.user.id, guildId);
             if (!permissions || !permissions.allowed) {
                 const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Permission Denied')
-                    .setDescription(`You don't have permission to use the wakeup command.\nAsk the bot owner to add you with \`/allowwakeup\`.`)
+                    .setColor(colors.ERROR)
+                    .setTitle('🔒 Access Denied')
+                    .setDescription('You do not have permission to use the wakeup command.')
+                    .addFields({
+                        name: '💡 How to get access',
+                        value: 'Ask the bot owner to grant you wakeup permissions using `/allowwakeup`',
+                        inline: false
+                    })
+                    .setFooter({ text: 'Purple Bot Security System' })
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -37,9 +44,14 @@ module.exports = {
             const member = await interaction.guild.members.fetch(targetUser.id);
             if (!member.voice.channel) {
                 const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ User Not in Voice')
+                    .setColor(colors.WARNING)
+                    .setTitle('⚠️ User Not in Voice')
                     .setDescription(`${targetUser.username} is not currently in a voice channel.`)
+                    .addFields({
+                        name: '💡 Tip',
+                        value: 'The user must be connected to voice to be woken up!',
+                        inline: false
+                    })
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed], ephemeral: true });
@@ -50,7 +62,7 @@ module.exports = {
             // Check if bot has permission to move members
             if (!interaction.guild.members.me.permissions.has('MoveMembers')) {
                 const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
+                    .setColor(colors.ERROR)
                     .setTitle('❌ Missing Permissions')
                     .setDescription('I need the "Move Members" permission to use this command.')
                     .setTimestamp();
@@ -64,23 +76,25 @@ module.exports = {
 
             if (!channel1 || !channel2) {
                 const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Channels Not Found')
-                    .setDescription('One or both wakeup channels could not be found.')
+                    .setColor(colors.ERROR)
+                    .setTitle('❌ Configuration Error')
+                    .setDescription('Wakeup channels are not properly configured.')
                     .setTimestamp();
 
                 return interaction.reply({ embeds: [embed], ephemeral: true });
             }
 
-            // Start the wakeup process immediately
+            // Initial response
             const embed = new EmbedBuilder()
-                .setColor('#ffff00')
-                .setTitle('⏰ Waking Up User')
-                .setDescription(`Waking up ${targetUser.username}...`)
+                .setColor(colors.ACCENT)
+                .setTitle('💜 Wakeup Initiated')
+                .setDescription(`Starting wakeup sequence for ${targetUser.username}...`)
                 .addFields(
-                    { name: 'Target', value: `<@${targetUser.id}>`, inline: true },
-                    { name: 'Original Channel', value: originalChannel.name, inline: true }
+                    { name: '🎯 Target', value: targetUser.username, inline: true },
+                    { name: '📍 Original Channel', value: originalChannel.name, inline: true },
+                    { name: '⚡ Status', value: 'Moving between channels...', inline: true }
                 )
+                .setThumbnail(targetUser.displayAvatarURL())
                 .setTimestamp();
 
             await interaction.reply({ embeds: [embed] });
@@ -98,12 +112,12 @@ module.exports = {
                         console.log('User disconnected from voice during wakeup - stopping command');
                         
                         const disconnectedEmbed = new EmbedBuilder()
-                            .setColor('#ffff00')
+                            .setColor(colors.WARNING)
                             .setTitle('⚠️ Wakeup Stopped')
                             .setDescription(`${targetUser.username} disconnected from voice during wakeup.`)
                             .addFields(
-                                { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
-                                { name: 'Status', value: 'User left voice - command stopped', inline: true }
+                                { name: '📊 Moves Made', value: `${moveCount} moves`, inline: true },
+                                { name: '⚡ Status', value: 'User left voice - command stopped', inline: true }
                             )
                             .setTimestamp();
 
@@ -127,13 +141,16 @@ module.exports = {
                             
                             // Update the embed to show completion
                             const completedEmbed = new EmbedBuilder()
-                                .setColor('#00ff00')
+                                .setColor(colors.SUCCESS)
                                 .setTitle('✅ Wakeup Complete')
-                                .setDescription(`${targetUser.username} has been woken up and returned to ${originalChannel.name}.`)
+                                .setDescription(`${targetUser.username} has been successfully woken up!`)
                                 .addFields(
-                                    { name: 'Moves Made', value: `${moveCount} moves`, inline: true },
-                                    { name: 'Status', value: 'Completed successfully', inline: true }
+                                    { name: '📊 Moves Made', value: `${moveCount} moves`, inline: true },
+                                    { name: '📍 Returned To', value: originalChannel.name, inline: true },
+                                    { name: '⚡ Status', value: 'Completed successfully', inline: true }
                                 )
+                                .setThumbnail(targetUser.displayAvatarURL())
+                                .setFooter({ text: 'Purple Bot Wakeup System' })
                                 .setTimestamp();
 
                             await interaction.editReply({ embeds: [completedEmbed] });
@@ -142,7 +159,7 @@ module.exports = {
                             console.error('Error returning user to original channel:', returnError);
                             
                             const errorEmbed = new EmbedBuilder()
-                                .setColor('#ff0000')
+                                .setColor(colors.ERROR)
                                 .setTitle('⚠️ Wakeup Completed with Issues')
                                 .setDescription(`${targetUser.username} was woken up (${moveCount} moves), but there was an issue returning them to the original channel.`)
                                 .setTimestamp();
@@ -164,7 +181,7 @@ module.exports = {
                         }
                         
                         const errorEmbed = new EmbedBuilder()
-                            .setColor('#ff0000')
+                            .setColor(colors.ERROR)
                             .setTitle('⚠️ Wakeup Error')
                             .setDescription(`Error occurred during wakeup after ${moveCount} moves. User returned to original channel.`)
                             .setTimestamp();
@@ -175,7 +192,7 @@ module.exports = {
                         console.error('Error returning user after move error:', returnError);
                         
                         const finalErrorEmbed = new EmbedBuilder()
-                            .setColor('#ff0000')
+                            .setColor(colors.ERROR)
                             .setTitle('❌ Wakeup Failed')
                             .setDescription(`Wakeup failed after ${moveCount} moves and could not return user to original channel.`)
                             .setTimestamp();
@@ -192,7 +209,7 @@ module.exports = {
             console.error('Error in wakeup command:', error);
             
             const errorEmbed = new EmbedBuilder()
-                .setColor('#ff0000')
+                .setColor(colors.ERROR)
                 .setTitle('❌ Error')
                 .setDescription('An error occurred while trying to wake up the user.')
                 .setTimestamp();

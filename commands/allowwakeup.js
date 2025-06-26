@@ -1,60 +1,61 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const database = require('../utils/database');
 const { checkOwner } = require('../utils/ownerCheck');
+const { setWakeupPermissions } = require('../utils/database');
+const colors = require('../utils/colors');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('allowwakeup')
-        .setDescription('Allow a user to be woken up with the /wakeup command (Owner only)')
+        .setDescription('💜 [OWNER] Grant wakeup permissions to a user')
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('The user to allow wakeup for')
+                .setDescription('User to grant wakeup permissions to')
                 .setRequired(true)),
-
+    
     async execute(interaction) {
-        try {
-            // Check if user is the bot owner
-            if (!(await checkOwner(interaction))) {
-                return;
-            }
+        // Check if user is the bot owner
+        if (!await checkOwner(interaction)) {
+            return;
+        }
 
-            const targetUser = interaction.options.getUser('user');
-            const guildId = interaction.guild.id;
+        const targetUser = interaction.options.getUser('user');
+        const guildId = interaction.guild.id;
 
-            // Check if target is a bot
-            if (targetUser.bot) {
-                const embed = new EmbedBuilder()
-                    .setColor('#ff0000')
-                    .setTitle('❌ Invalid Target')
-                    .setDescription('You cannot allow wakeup for bots.')
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [embed], ephemeral: true });
-            }
-
-            // Set wakeup permissions to allowed
-            await database.setWakeupPermissions(targetUser.id, guildId, true);
-
-            const embed = new EmbedBuilder()
-                .setColor('#00ff00')
-                .setTitle('✅ Wakeup Allowed')
-                .setDescription(`${targetUser.username} can now be woken up using the \`/wakeup\` command.`)
-                .addFields(
-                    { name: 'User', value: `<@${targetUser.id}>`, inline: true },
-                    { name: 'Status', value: 'Wakeup Allowed', inline: true },
-                    { name: 'Added By', value: `<@${interaction.user.id}>`, inline: true }
-                )
+        // Prevent granting permissions to bots
+        if (targetUser.bot) {
+            const botEmbed = new EmbedBuilder()
+                .setColor(colors.WARNING)
+                .setTitle('⚠️ Invalid Target')
+                .setDescription('Cannot grant wakeup permissions to bots.')
                 .setTimestamp();
 
-            await interaction.reply({ embeds: [embed] });
+            return await interaction.reply({ embeds: [botEmbed], ephemeral: true });
+        }
 
+        try {
+            await setWakeupPermissions(targetUser.id, guildId, true);
+            
+            const successEmbed = new EmbedBuilder()
+                .setColor(colors.SUCCESS)
+                .setTitle('✅ Permissions Granted')
+                .setDescription(`${targetUser.username} now has permission to use the wakeup command.`)
+                .addFields(
+                    { name: '👤 User', value: `<@${targetUser.id}>`, inline: true },
+                    { name: '🎯 Permission', value: 'Wakeup Command Access', inline: true },
+                    { name: '⚡ Status', value: 'Active', inline: true }
+                )
+                .setThumbnail(targetUser.displayAvatarURL())
+                .setFooter({ text: 'Purple Bot Permission System' })
+                .setTimestamp();
+
+            await interaction.reply({ embeds: [successEmbed] });
         } catch (error) {
-            console.error('Error in allowwakeup command:', error);
+            console.error('Error granting wakeup permissions:', error);
             
             const errorEmbed = new EmbedBuilder()
-                .setColor('#ff0000')
-                .setTitle('❌ Error')
-                .setDescription('An error occurred while updating wakeup permissions.')
+                .setColor(colors.ERROR)
+                .setTitle('❌ Permission Error')
+                .setDescription('Failed to grant wakeup permissions. Please try again.')
                 .setTimestamp();
 
             await interaction.reply({ embeds: [errorEmbed], ephemeral: true });

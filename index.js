@@ -13,6 +13,7 @@ const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
+const webhook = require('./utils/webhook');
 require('dotenv').config();
 
 // Create a new client instance
@@ -91,12 +92,15 @@ const loadEvents = () => {
 };
 
 // Bot ready event
-client.once(Events.ClientReady, () => {
+client.once(Events.ClientReady, async () => {
     console.log(`🚀 Bot is ready! Logged in as ${client.user.tag}`);
     console.log(`📊 Serving ${client.guilds.cache.size} guilds with ${client.users.cache.size} users`);
     
     // Set bot activity
-    client.user.setActivity('with Discord.js', { type: 'PLAYING' });
+    client.user.setActivity('💜 Purple Bot Online', { type: 'PLAYING' });
+    
+    // Send startup notification via webhook
+    await webhook.sendStartupNotification();
     
     // Initialize and start channel updater
     const channelUpdater = new ChannelUpdater(client);
@@ -146,8 +150,12 @@ process.on('unhandledRejection', error => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', () => {
+process.on('SIGINT', async () => {
     console.log('🛑 Received SIGINT. Graceful shutdown...');
+    
+    // Send shutdown notification
+    await webhook.sendShutdownNotification();
+    
     if (client.channelUpdater) {
         client.channelUpdater.stop();
     }
@@ -155,8 +163,12 @@ process.on('SIGINT', () => {
     process.exit(0);
 });
 
-process.on('SIGTERM', () => {
+process.on('SIGTERM', async () => {
     console.log('🛑 Received SIGTERM. Graceful shutdown...');
+    
+    // Send shutdown notification
+    await webhook.sendShutdownNotification();
+    
     if (client.channelUpdater) {
         client.channelUpdater.stop();
     }
