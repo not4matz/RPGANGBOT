@@ -2,7 +2,6 @@ console.log("🚀 Bot script Index.js starting execution...");
 
 // Load environment variables FIRST
 require('dotenv').config();
-console.log('🔍 DEBUG: Environment loaded. Webhook URL set?', !!process.env.UPDATE_WEBHOOK_URL);
 
 // === Global Error Handlers ===
 process.on('unhandledRejection', error => {

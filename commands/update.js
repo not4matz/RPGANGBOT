@@ -163,15 +163,7 @@ module.exports = {
     },
 
     async handleStartup(interaction) {
-        console.log('🔍 DEBUG: handleStartup called');
-        
-        try {
-            console.log('🔍 DEBUG: Calling webhook.sendStartupNotification()');
-            await webhook.sendStartupNotification();
-            console.log('🔍 DEBUG: webhook.sendStartupNotification() completed');
-        } catch (error) {
-            console.error('🔍 DEBUG: Error in sendStartupNotification:', error);
-        }
+        await webhook.sendStartupNotification();
         
         const confirmEmbed = new EmbedBuilder()
             .setColor(colors.SUCCESS)
