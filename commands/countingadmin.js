@@ -1,13 +1,13 @@
 const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
 const database = require('../utils/database');
+const { isOwner } = require('../utils/ownerCheck');
 
 const COUNTING_CHANNEL_ID = '1225180419402502278';
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('countingadmin')
-        .setDescription('Admin commands for the counting system')
-        .setDefaultMemberPermissions(PermissionFlagsBits.ManageMessages)
+        .setDescription('Admin commands for the counting system :purple_heart: [Owner]')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('status')
@@ -35,6 +35,10 @@ module.exports = {
                 .setDescription('Delete counting data for this server')),
 
     async execute(interaction) {
+        if (!(await isOwner(interaction.user.id))) {
+            return interaction.reply({ content: 'This command is only available to the bot owner.', ephemeral: true });
+        }
+
         const subcommand = interaction.options.getSubcommand();
         const guildId = interaction.guild.id;
         const channelId = COUNTING_CHANNEL_ID;

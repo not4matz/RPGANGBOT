@@ -6,7 +6,7 @@ const colors = require('../utils/colors');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('allowwakeup')
-        .setDescription('💜 [OWNER] Grant wakeup permissions to a user')
+        .setDescription('Allow a user to be woken up :purple_heart: [Owner]')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('User to grant wakeup permissions to')
