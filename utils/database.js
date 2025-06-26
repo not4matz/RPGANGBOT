@@ -53,6 +53,18 @@ class Database {
             )
         `;
 
+        const createWakeupPermissionsTable = `
+            CREATE TABLE IF NOT EXISTS wakeup_permissions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                allowed BOOLEAN DEFAULT 1,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, guild_id)
+            )
+        `;
+
         this.db.run(createUsersTable, (err) => {
             if (err) {
                 console.error('❌ Error creating users table:', err.message);
@@ -66,6 +78,14 @@ class Database {
                 console.error('❌ Error creating counting table:', err.message);
             } else {
                 console.log('✅ Counting table ready');
+            }
+        });
+
+        this.db.run(createWakeupPermissionsTable, (err) => {
+            if (err) {
+                console.error('❌ Error creating wakeup_permissions table:', err.message);
+            } else {
+                console.log('✅ Wakeup permissions table ready');
             }
         });
 
@@ -423,6 +443,92 @@ class Database {
         return new Promise((resolve, reject) => {
             const query = 'DELETE FROM counting WHERE guild_id = ? AND channel_id = ?';
             this.db.run(query, [guildId, channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Wakeup permissions methods
+    // Get wakeup permissions for a user
+    getWakeupPermissions(userId, guildId) {
+        return new Promise((resolve, reject) => {
+            const query = 'SELECT * FROM wakeup_permissions WHERE user_id = ? AND guild_id = ?';
+            this.db.get(query, [userId, guildId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    }
+
+    // Initialize wakeup permissions for a user
+    initializeWakeupPermissions(userId, guildId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO wakeup_permissions (user_id, guild_id, allowed, updated_at)
+                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, guild_id) DO NOTHING
+            `;
+            this.db.run(query, [userId, guildId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+        });
+    }
+
+    // Update wakeup permissions for a user
+    updateWakeupPermissions(userId, guildId, allowed) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE wakeup_permissions 
+                SET allowed = ?, 
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE user_id = ? AND guild_id = ?
+            `;
+            this.db.run(query, [allowed, userId, guildId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Set wakeup permissions for a user (upsert)
+    setWakeupPermissions(userId, guildId, allowed) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO wakeup_permissions (user_id, guild_id, allowed, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, guild_id) DO UPDATE SET
+                    allowed = excluded.allowed,
+                    updated_at = CURRENT_TIMESTAMP
+            `;
+            this.db.run(query, [userId, guildId, allowed], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID || this.changes);
+                }
+            });
+        });
+    }
+
+    // Delete wakeup permissions for a user
+    deleteWakeupPermissions(userId, guildId) {
+        return new Promise((resolve, reject) => {
+            const query = 'DELETE FROM wakeup_permissions WHERE user_id = ? AND guild_id = ?';
+            this.db.run(query, [userId, guildId], function(err) {
                 if (err) {
                     reject(err);
                 } else {
