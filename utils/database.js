@@ -396,7 +396,28 @@ class Database {
         return new Promise((resolve, reject) => {
             const query = `
                 UPDATE users 
-                SET voice_join_time = 0, last_voice_xp_time = 0, updated_at = CURRENT_TIMESTAMP 
+                SET voice_join_time = 0, 
+                    last_voice_xp_time = 0,
+                    updated_at = CURRENT_TIMESTAMP
+                WHERE guild_id = ?
+            `;
+            this.db.run(query, [guildId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Reset all voice minutes for a guild (owner only)
+    resetAllVoiceMinutes(guildId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE users 
+                SET voice_time_minutes = 0,
+                    updated_at = CURRENT_TIMESTAMP
                 WHERE guild_id = ?
             `;
             this.db.run(query, [guildId], function(err) {
