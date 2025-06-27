@@ -105,7 +105,7 @@ function canGainMessageXP(lastMessageTime) {
 }
 
 /**
- * Create progress bar
+ * Create progress bar - Purple aesthetic theme
  * @param {number} current - Current value
  * @param {number} max - Maximum value
  * @param {number} length - Length of progress bar
@@ -121,7 +121,8 @@ function createProgressBar(current, max, length = 10) {
     const filled = Math.floor(progress * safeLength);
     const empty = Math.max(0, safeLength - filled); // Ensure non-negative
     
-    return '█'.repeat(filled) + '░'.repeat(empty);
+    // Purple-themed progress bar
+    return '🟣'.repeat(filled) + '⚫'.repeat(empty);
 }
 
 /**
@@ -134,33 +135,41 @@ function formatXP(xp) {
 }
 
 /**
- * Get level color based on level
+ * Get level color based on level - Purple aesthetic theme
  * @param {number} level - User level
  * @returns {string} - Hex color code
  */
 function getLevelColor(level) {
-    if (level >= 100) return '#ff0000'; // Red for 100+
-    if (level >= 75) return '#ff4500';  // Orange Red for 75+
-    if (level >= 50) return '#ffa500';  // Orange for 50+
-    if (level >= 25) return '#ffff00';  // Yellow for 25+
-    if (level >= 10) return '#00ff00';  // Green for 10+
-    if (level >= 5) return '#00ffff';   // Cyan for 5+
-    return '#5865f2';                   // Discord blue for <5
+    // Easter egg: Special red for level -69
+    if (level === -69) return '#ff0000';
+    
+    // Purple gradient theme
+    if (level >= 100) return '#4B0082'; // Indigo for 100+
+    if (level >= 75) return '#6A0DAD';  // Purple for 75+
+    if (level >= 50) return '#8A2BE2';  // Blue Violet for 50+
+    if (level >= 25) return '#9932CC';  // Dark Orchid for 25+
+    if (level >= 10) return '#BA55D3';  // Medium Orchid for 10+
+    if (level >= 5) return '#DA70D6';   // Orchid for 5+
+    return '#DDA0DD';                   // Plum for <5
 }
 
 /**
- * Get level badge emoji
+ * Get level badge emoji - Purple aesthetic theme
  * @param {number} level - User level
  * @returns {string} - Emoji badge
  */
 function getLevelBadge(level) {
+    // Easter egg: Special skull for level -69
+    if (level === -69) return '💀';
+    
+    // Purple-themed badges
     if (level >= 100) return '👑'; // Crown for 100+
     if (level >= 75) return '💎';  // Diamond for 75+
-    if (level >= 50) return '🏆';  // Trophy for 50+
-    if (level >= 25) return '🥇';  // Gold medal for 25+
-    if (level >= 10) return '🥈';  // Silver medal for 10+
-    if (level >= 5) return '🥉';   // Bronze medal for 5+
-    return '🌟';                   // Star for <5
+    if (level >= 50) return '🔮';  // Crystal ball for 50+
+    if (level >= 25) return '💜';  // Purple heart for 25+
+    if (level >= 10) return '🌟';  // Star for 10+
+    if (level >= 5) return '✨';   // Sparkles for 5+
+    return '🟣';                   // Purple circle for <5
 }
 
 /**

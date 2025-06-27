@@ -10,9 +10,9 @@ module.exports = {
         try {
             // Create main explanation embed
             const mainEmbed = new EmbedBuilder()
-                .setTitle('📚 Leveling System Explained')
+                .setTitle('🔮 Leveling System Explained')
                 .setDescription('Here\'s everything you need to know about gaining XP and leveling up!')
-                .setColor('#5865f2')
+                .setColor('#6A0DAD')
                 .setThumbnail(interaction.guild.iconURL())
                 .addFields(
                     {
@@ -32,7 +32,7 @@ module.exports = {
                     }
                 )
                 .setFooter({ 
-                    text: 'Use /level to check your progress!',
+                    text: 'Purple Bot • Use /level to check your progress!',
                     iconURL: interaction.client.user.displayAvatarURL()
                 })
                 .setTimestamp();
@@ -40,7 +40,7 @@ module.exports = {
             // Create XP calculation examples embed
             const examplesEmbed = new EmbedBuilder()
                 .setTitle('🧮 XP Calculation Examples')
-                .setColor('#00ff00')
+                .setColor('#8A2BE2')
                 .addFields(
                     {
                         name: '💬 Message Examples',
@@ -59,27 +59,27 @@ module.exports = {
                     },
                     {
                         name: '⚡ Exponential Growth',
-                        value: `Higher levels require **exponentially more XP**!\n• Level 25: ${getXPForLevel(25).toLocaleString()} XP (${Math.round(getXPForLevel(25) / 5 / 60 * 10) / 10} hours)\n• Level 50: ${getXPForLevel(50).toLocaleString()} XP (${Math.round(getXPForLevel(50) / 5 / 60 * 10) / 10} hours)\n• Level 100: ${getXPForLevel(100).toLocaleString()} XP (${Math.round(getXPForLevel(100) / 5 / 60 * 10) / 10} hours) 🏆`,
+                        value: `The leveling system uses **exponential progression**:\n• Early levels (1-10) are quick and accessible\n• Mid levels (10-50) require regular participation\n• High levels (50-100) demand serious dedication\n• **Level 100** = ~150 hours of voice chat! 👑`,
                         inline: false
                     }
                 )
                 .setFooter({ 
-                    text: 'Mix messages and voice chat for faster progression!',
+                    text: 'Purple Bot • XP System',
                     iconURL: interaction.client.user.displayAvatarURL()
                 });
 
-            // Create tips and features embed
+            // Create tips embed
             const tipsEmbed = new EmbedBuilder()
-                .setTitle('💡 Tips & Features')
-                .setColor('#ffaa00')
+                .setTitle('💜 Tips & Features')
+                .setColor('#9932CC')
                 .addFields(
                     {
                         name: '🚀 Level Up Announcements',
-                        value: '• Automatic announcements when you level up\n• Special badges for different level ranges\n• Colorful embeds to celebrate your progress',
+                        value: '• Automatic announcements when you level up\n• Special purple-themed badges for different level ranges\n• Colorful embeds to celebrate your progress',
                         inline: false
                     },
                     {
-                        name: '🏆 Ranking System',
+                        name: '👑 Ranking System',
                         value: '• Check your server rank with `/level`\n• View the leaderboard with `/leaderboard`\n• See who\'s the most active in your server',
                         inline: false
                     },
@@ -95,48 +95,53 @@ module.exports = {
                     }
                 )
                 .setFooter({ 
-                    text: 'Every message and minute in voice counts towards your level!',
+                    text: 'Purple Bot • Every message and minute in voice counts!',
                     iconURL: interaction.client.user.displayAvatarURL()
                 });
 
             // Create level badges explanation embed
             const badgesEmbed = new EmbedBuilder()
                 .setTitle('🎖️ Level Badges & Colors')
-                .setColor('#aa00ff')
+                .setColor('#4B0082')
                 .addFields(
                     {
-                        name: '🌟 Beginner (Levels 1-4)',
-                        value: '**Badge**: 🌟 Star\n**Color**: Blue\n**Description**: Just getting started!',
+                        name: '🟣 Beginner (Levels 1-4)',
+                        value: '**Badge**: 🟣 Purple Circle\n**Color**: Plum\n**Description**: Just getting started!',
                         inline: true
                     },
                     {
-                        name: '⭐ Regular (Levels 5-9)',
-                        value: '**Badge**: ⭐ Bright Star\n**Color**: Green\n**Description**: Making good progress!',
+                        name: '✨ Regular (Levels 5-9)',
+                        value: '**Badge**: ✨ Sparkles\n**Color**: Orchid\n**Description**: Making good progress!',
                         inline: true
                     },
                     {
-                        name: '🔥 Active (Levels 10-19)',
-                        value: '**Badge**: 🔥 Fire\n**Color**: Orange\n**Description**: Really active member!',
+                        name: '🌟 Active (Levels 10-24)',
+                        value: '**Badge**: 🌟 Star\n**Color**: Medium Orchid\n**Description**: Really active member!',
                         inline: true
                     },
                     {
-                        name: '💎 Expert (Levels 20-49)',
-                        value: '**Badge**: 💎 Diamond\n**Color**: Cyan\n**Description**: Experienced community member!',
+                        name: '💜 Expert (Levels 25-49)',
+                        value: '**Badge**: 💜 Purple Heart\n**Color**: Dark Orchid\n**Description**: Experienced community member!',
                         inline: true
                     },
                     {
-                        name: '🏆 Master (Levels 50-99)',
-                        value: '**Badge**: 🏆 Trophy\n**Color**: Gold\n**Description**: Master of the community!',
+                        name: '🔮 Master (Levels 50-74)',
+                        value: '**Badge**: 🔮 Crystal Ball\n**Color**: Blue Violet\n**Description**: Master of the community!',
+                        inline: true
+                    },
+                    {
+                        name: '💎 Elite (Levels 75-99)',
+                        value: '**Badge**: 💎 Diamond\n**Color**: Purple\n**Description**: Elite status achieved!',
                         inline: true
                     },
                     {
                         name: '👑 Legend (Level 100+)',
-                        value: '**Badge**: 👑 Crown\n**Color**: Purple\n**Description**: Legendary status achieved!',
+                        value: '**Badge**: 👑 Crown\n**Color**: Indigo\n**Description**: Legendary status achieved!',
                         inline: true
                     }
                 )
                 .setFooter({ 
-                    text: 'Which badge will you earn next?',
+                    text: 'Purple Bot • Which badge will you earn next?',
                     iconURL: interaction.client.user.displayAvatarURL()
                 });
 

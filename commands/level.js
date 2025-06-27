@@ -13,18 +13,18 @@ module.exports = {
     
     async execute(interaction) {
         try {
+            // Defer reply immediately to prevent timeout
+            await interaction.deferReply();
+
             const targetUser = interaction.options.getUser('user') || interaction.user;
             const guildId = interaction.guild.id;
 
-            // Don't show levels for bots
+            // Check if target is a bot
             if (targetUser.bot) {
-                return await interaction.reply({
-                    content: '🤖 Bots don\'t have levels!',
-                    ephemeral: true
+                return await interaction.editReply({
+                    content: '🤖 Bots don\'t have levels!'
                 });
             }
-
-            await interaction.deferReply();
 
             // Get user data
             let userData = await database.getUser(targetUser.id, guildId);
@@ -63,7 +63,7 @@ module.exports = {
             const progress = getXPProgress(userData.xp, userData.level);
             const progressBar = createProgressBar(progress.currentLevelXP, progress.xpNeededForNext, 15);
 
-            // Create embed
+            // Create embed with purple theme
             const embed = new EmbedBuilder()
                 .setTitle(`${getLevelBadge(displayLevel)} Level Information`)
                 .setDescription(`**${targetUser.displayName}**'s leveling stats`)
@@ -71,12 +71,12 @@ module.exports = {
                 .setThumbnail(targetUser.displayAvatarURL())
                 .addFields(
                     {
-                        name: '📈 Level',
+                        name: '🔮 Level',
                         value: `**${displayLevel}**`,
                         inline: true
                     },
                     {
-                        name: '🏆 Rank',
+                        name: '👑 Rank',
                         value: rank ? `**#${rank}**` : '**Unranked**',
                         inline: true
                     },
@@ -91,24 +91,24 @@ module.exports = {
                         inline: true
                     },
                     {
-                        name: '⭐ Total XP',
+                        name: '✨ Total XP',
                         value: `**${formatXP(userData.xp)}**`,
                         inline: true
                     },
                     {
-                        name: '📊 XP Sources',
+                        name: '💜 XP Sources',
                         value: `💬 Messages: ~${(userData.total_messages * 5).toLocaleString()} XP\n🎤 Voice: ~${((userData.voice_time_minutes || 0) * 5).toLocaleString()} XP`,
                         inline: true
                     },
                     {
-                        name: '🎯 Progress to Next Level',
+                        name: '🌟 Progress to Next Level',
                         value: displayLevel === -69 ? 
-                            `**∞** / **∞** XP\n${'🔥'.repeat(15)} ∞%\n*You are eternal at level -69!*` :
+                            `**∞** / **∞** XP\n${'💀'.repeat(15)} ∞%\n*You are eternal at level -69!*` :
                             `**${formatXP(progress.currentLevelXP)}** / **${formatXP(progress.xpNeededForNext)}** XP\n${progressBar} ${progress.progress}%`,
                         inline: false
                     },
                     {
-                        name: '📊 XP Remaining',
+                        name: '🔮 XP Remaining',
                         value: displayLevel === -69 ? 
                             `**∞** XP needed to escape the void...` :
                             `**${formatXP(progress.xpRemaining)}** XP needed for Level ${userData.level + 1}`,
@@ -116,7 +116,7 @@ module.exports = {
                     }
                 )
                 .setFooter({
-                    text: `Requested by ${interaction.user.displayName}`,
+                    text: `Purple Bot • Requested by ${interaction.user.displayName}`,
                     iconURL: interaction.user.displayAvatarURL()
                 })
                 .setTimestamp();
@@ -125,9 +125,26 @@ module.exports = {
 
         } catch (error) {
             console.error('Error in level command:', error);
-            await interaction.editReply({
-                content: '❌ An error occurred while fetching level information!'
-            });
+            
+            // Check if interaction is still valid before trying to respond
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({
+                        content: '❌ An error occurred while fetching level information!',
+                        ephemeral: true
+                    });
+                } catch (replyError) {
+                    console.error('Failed to send error reply:', replyError);
+                }
+            } else {
+                try {
+                    await interaction.editReply({
+                        content: '❌ An error occurred while fetching level information!'
+                    });
+                } catch (editError) {
+                    console.error('Failed to edit reply with error:', editError);
+                }
+            }
         }
     },
 };

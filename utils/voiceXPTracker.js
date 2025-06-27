@@ -72,8 +72,16 @@ class VoiceXPTracker {
 
                 // Check if at least 1 minute has passed since last XP gain
                 if (now - lastXPTime >= 60000) {
-                    const minutesEarned = Math.floor((now - lastXPTime) / 60000);
+                    // Calculate minutes earned, but cap it to prevent excessive XP from long offline periods
+                    const rawMinutesEarned = Math.floor((now - lastXPTime) / 60000);
+                    // Cap to maximum 5 minutes per interval to prevent XP abuse
+                    const minutesEarned = Math.min(rawMinutesEarned, 5);
                     const xpGain = generateVoiceXP() * minutesEarned;
+
+                    // Log if we're capping the XP gain
+                    if (rawMinutesEarned > 5) {
+                        console.log(`⚠️ Capped voice XP for ${member.user.tag}: ${rawMinutesEarned} minutes -> ${minutesEarned} minutes (prevented ${(rawMinutesEarned - minutesEarned) * generateVoiceXP()} XP abuse)`);
+                    }
 
                     // Get current user data for level checking
                     const currentUserData = await database.getUser(userData.user_id, guild.id);
@@ -215,12 +223,16 @@ class VoiceXPTracker {
                 .setColor(getLevelColor(newLevel))
                 .addFields(
                     { 
-                        name: '📊 Stats', 
+                        name: '💜 Stats', 
                         value: `**Level:** ${newLevel}\n**Total XP:** ${userData.xp.toLocaleString()}\n**Voice Time:** ${Math.floor(userData.voice_time_minutes)} minutes`, 
                         inline: true 
                     }
                 )
                 .setThumbnail(member.user.displayAvatarURL())
+                .setFooter({
+                    text: 'Purple Bot • Voice Activity Leveling',
+                    iconURL: member.guild.iconURL()
+                })
                 .setTimestamp();
 
             await targetChannel.send({ embeds: [levelUpEmbed] });

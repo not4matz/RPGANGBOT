@@ -25,9 +25,9 @@ module.exports = {
             
             if (leaderboard.length === 0) {
                 const embed = new EmbedBuilder()
-                    .setTitle('📊 Server Leaderboard')
+                    .setTitle('👑 Server Leaderboard')
                     .setDescription('No users found! Start chatting to appear on the leaderboard!')
-                    .setColor('#5865f2');
+                    .setColor('#6A0DAD');
 
                 return await interaction.editReply({ embeds: [embed] });
             }
@@ -45,7 +45,7 @@ module.exports = {
 
             // Build leaderboard string
             let leaderboardText = '';
-            const medals = ['🥇', '🥈', '🥉'];
+            const medals = ['👑', '💎', '🔮']; // Purple-themed medals
             
             for (let i = 0; i < displayUsers.length; i++) {
                 const userData = displayUsers[i];
@@ -76,9 +76,9 @@ module.exports = {
 
             // Create embed
             const embed = new EmbedBuilder()
-                .setTitle('📊 Server Leaderboard')
+                .setTitle('👑 Server Leaderboard')
                 .setDescription(leaderboardText + userRankText)
-                .setColor('#ffd700')
+                .setColor('#6A0DAD')
                 .setFooter({
                     text: `Page ${page}${hasNextPage ? ` • Use /leaderboard page:${page + 1} for more` : ''} • ${interaction.guild.name}`,
                     iconURL: interaction.guild.iconURL()
@@ -89,9 +89,26 @@ module.exports = {
 
         } catch (error) {
             console.error('Error in leaderboard command:', error);
-            await interaction.editReply({
-                content: '❌ An error occurred while fetching the leaderboard!'
-            });
+            
+            // Check if interaction is still valid before trying to respond
+            if (!interaction.replied && !interaction.deferred) {
+                try {
+                    await interaction.reply({
+                        content: '❌ An error occurred while fetching the leaderboard!',
+                        ephemeral: true
+                    });
+                } catch (replyError) {
+                    console.error('Failed to send error reply:', replyError);
+                }
+            } else {
+                try {
+                    await interaction.editReply({
+                        content: '❌ An error occurred while fetching the leaderboard!'
+                    });
+                } catch (editError) {
+                    console.error('Failed to edit reply with error:', editError);
+                }
+            }
         }
     },
 };

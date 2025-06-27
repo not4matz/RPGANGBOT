@@ -52,12 +52,16 @@ module.exports = {
                     .setColor(getLevelColor(newLevel))
                     .addFields(
                         { 
-                            name: '📊 Stats', 
+                            name: '💜 Stats', 
                             value: `**Level:** ${newLevel}\n**Total XP:** ${updatedUser.xp.toLocaleString()}\n**Messages:** ${updatedUser.total_messages}`, 
                             inline: true 
                         }
                     )
                     .setThumbnail(message.author.displayAvatarURL())
+                    .setFooter({
+                        text: 'Purple Bot • Message Leveling',
+                        iconURL: message.guild.iconURL()
+                    })
                     .setTimestamp();
 
                 // Send level up message to specific channel

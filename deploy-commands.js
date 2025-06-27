@@ -33,9 +33,68 @@ for (const file of commandFiles) {
 // Construct and prepare an instance of the REST module
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);
 
+// Function to clean up orphaned commands
+async function cleanupOrphanedCommands() {
+    try {
+        console.log(`🧹 Checking for orphaned commands...`);
+        
+        const localCommandNames = commands.map(cmd => cmd.name);
+        let registeredCommands;
+        let routeType;
+
+        // Get registered commands
+        if (process.env.GUILD_ID) {
+            registeredCommands = await rest.get(
+                Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID)
+            );
+            routeType = 'guild';
+        } else {
+            registeredCommands = await rest.get(
+                Routes.applicationCommands(process.env.CLIENT_ID)
+            );
+            routeType = 'global';
+        }
+
+        // Find orphaned commands
+        const orphanedCommands = registeredCommands.filter(
+            registeredCmd => !localCommandNames.includes(registeredCmd.name)
+        );
+
+        if (orphanedCommands.length > 0) {
+            console.log(`🗑️  Found ${orphanedCommands.length} orphaned ${routeType} commands to clean up:`);
+            orphanedCommands.forEach(cmd => console.log(`   - ${cmd.name}`));
+
+            // Delete orphaned commands
+            for (const cmd of orphanedCommands) {
+                try {
+                    if (process.env.GUILD_ID) {
+                        await rest.delete(
+                            Routes.applicationGuildCommand(process.env.CLIENT_ID, process.env.GUILD_ID, cmd.id)
+                        );
+                    } else {
+                        await rest.delete(
+                            Routes.applicationCommand(process.env.CLIENT_ID, cmd.id)
+                        );
+                    }
+                    console.log(`🗑️  Deleted orphaned command: ${cmd.name}`);
+                } catch (error) {
+                    console.error(`❌ Failed to delete ${cmd.name}:`, error.message);
+                }
+            }
+        } else {
+            console.log(`✅ No orphaned commands found`);
+        }
+    } catch (error) {
+        console.error('⚠️  Error during cleanup (continuing with deployment):', error.message);
+    }
+}
+
 // Deploy commands
 (async () => {
     try {
+        // Clean up orphaned commands first
+        await cleanupOrphanedCommands();
+        
         console.log(`🚀 Started refreshing ${commands.length} application (/) commands.`);
 
         // Check if we should deploy globally or to a specific guild
