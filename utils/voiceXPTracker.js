@@ -190,10 +190,8 @@ class VoiceXPTracker {
                     const newXP = currentUserData.xp + xpGain;
                     const newLevel = getLevelFromXP(newXP, userData.user_id);
 
-                    // Update database with voice XP and time
-                    await database.addXP(userData.user_id, guild.id, xpGain);
-                    await database.addVoiceTime(userData.user_id, guild.id, cappedMinutes);
-                    await database.updateLastVoiceXPTime(userData.user_id, guild.id, now);
+                    // Update database with voice XP and time (single call handles everything)
+                    await database.addVoiceXP(userData.user_id, guild.id, xpGain, cappedMinutes);
 
                     // Check for level up
                     if (newLevel > oldLevel) {
