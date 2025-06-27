@@ -13,12 +13,24 @@ process.on('uncaughtException', error => {
 });
 
 // === Imports & Setup ===
-const { Client, GatewayIntentBits, Collection, Events } = require('discord.js');
+const { Client, GatewayIntentBits, Collection, ActivityType, Events } = require('discord.js');
 const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
 const webhook = require('./utils/webhook');
-const WebhookServer = require('./server/webhookServer');
+
+// Try to load webhook server, but don't crash if Express is missing
+let webhookServer = null;
+try {
+    webhookServer = require('./server/webhookServer');
+} catch (error) {
+    if (error.code === 'MODULE_NOT_FOUND' && error.message.includes('express')) {
+        console.log('⚠️  Express not found - GitHub webhook server disabled');
+        console.log('💡 Run "npm install" to enable webhook functionality');
+    } else {
+        console.error('❌ Error loading webhook server:', error.message);
+    }
+}
 
 // Create a new client instance
 const client = new Client({
@@ -101,7 +113,7 @@ client.once(Events.ClientReady, async () => {
     console.log(`📊 Serving ${client.guilds.cache.size} guilds with ${client.users.cache.size} users`);
     
     // Set bot activity
-    client.user.setActivity('💜 Purple Bot Online', { type: 'PLAYING' });
+    client.user.setActivity('💜 Purple Bot Online', { type: ActivityType.Playing });
     
     // Send startup notification via webhook
     await webhook.sendStartupNotification();
@@ -114,13 +126,14 @@ client.once(Events.ClientReady, async () => {
     client.channelUpdater = channelUpdater;
     
     // Start GitHub webhook server
-    const webhookServer = new WebhookServer();
-    try {
-        await webhookServer.start();
-        client.webhookServer = webhookServer;
-    } catch (error) {
-        console.error('❌ Failed to start webhook server:', error);
-        console.log('⚠️ Bot will continue without webhook server');
+    if (webhookServer) {
+        try {
+            await webhookServer.start();
+            client.webhookServer = webhookServer;
+        } catch (error) {
+            console.error('❌ Failed to start webhook server:', error);
+            console.log('⚠️ Bot will continue without webhook server');
+        }
     }
 });
 
