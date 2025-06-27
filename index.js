@@ -177,37 +177,36 @@ process.on('unhandledRejection', error => {
 });
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
-    console.log('🛑 Received SIGINT. Graceful shutdown...');
+async function shutdown(signal) {
+    console.log(`\n🔄 Received ${signal}. Shutting down gracefully...`);
     
-    // Send shutdown notification
-    await webhook.sendShutdownNotification();
-    
-    if (client.channelUpdater) {
-        client.channelUpdater.stop();
+    try {
+        // Stop webhook server
+        if (client.webhookServer) {
+            console.log('🛑 Stopping webhook server...');
+            await client.webhookServer.stop();
+        }
+        
+        // Stop channel updater
+        if (client.channelUpdater) {
+            console.log('🛑 Stopping channel updater...');
+            client.channelUpdater.stop();
+        }
+        
+        // Destroy Discord client
+        console.log('🛑 Disconnecting from Discord...');
+        client.destroy();
+        
+        console.log('✅ Shutdown complete');
+        process.exit(0);
+    } catch (error) {
+        console.error('❌ Error during shutdown:', error);
+        process.exit(1);
     }
-    if (client.webhookServer) {
-        await client.webhookServer.stop();
-    }
-    client.destroy();
-    process.exit(0);
-});
+}
 
-process.on('SIGTERM', async () => {
-    console.log('🛑 Received SIGTERM. Graceful shutdown...');
-    
-    // Send shutdown notification
-    await webhook.sendShutdownNotification();
-    
-    if (client.channelUpdater) {
-        client.channelUpdater.stop();
-    }
-    if (client.webhookServer) {
-        await client.webhookServer.stop();
-    }
-    client.destroy();
-    process.exit(0);
-});
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // Load commands and events
 loadCommands();
