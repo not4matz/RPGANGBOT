@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('status')
-        .setDescription('🔒 [OWNER ONLY] Set the bot\'s activity status')
+        .setDescription('💜 Manage bot status and activity (Owner only)')
         .addStringOption(option =>
             option.setName('type')
                 .setDescription('Type of activity')

@@ -8,7 +8,7 @@ const YES_NO_EMOJIS = ['✅', '❌'];
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('poll')
-        .setDescription('🔒 [OWNER ONLY] Create interactive polls')
+        .setDescription('🔒 Create interactive polls (Owner only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('create')

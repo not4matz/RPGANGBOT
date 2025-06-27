@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('embedbuilder')
-        .setDescription('🔒 [OWNER ONLY] Interactive embed builder with preview'),
+        .setDescription('🎨 Interactive embed builder with live preview (Owner only)'),
     
     async execute(interaction) {
         // Check if user is bot owner

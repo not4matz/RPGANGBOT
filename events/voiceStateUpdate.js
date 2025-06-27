@@ -1,5 +1,6 @@
 const { Events } = require('discord.js');
 const database = require('../utils/database');
+const Join2CreateHandler = require('./join2createHandler');
 
 module.exports = {
     name: Events.VoiceStateUpdate,
@@ -11,6 +12,9 @@ module.exports = {
         const guildId = newState.guild.id;
 
         try {
+            // Handle Join2Create functionality first
+            await Join2CreateHandler.handleVoiceStateUpdate(oldState, newState);
+
             // User joined a voice channel
             if (!oldState.channel && newState.channel) {
                 console.log(`🎤 ${newState.member.user.tag} joined voice channel: ${newState.channel.name}`);

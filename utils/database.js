@@ -89,6 +89,19 @@ class Database {
             }
         });
 
+        // Initialize Join2Create tables
+        this.initJoin2CreateTable().then(() => {
+            console.log('✅ Join2Create config table ready');
+        }).catch(err => {
+            console.error('❌ Error creating join2create_config table:', err.message);
+        });
+
+        this.initJoin2CreateChannelsTable().then(() => {
+            console.log('✅ Join2Create channels table ready');
+        }).catch(err => {
+            console.error('❌ Error creating join2create_channels table:', err.message);
+        });
+
         // Run migrations to add missing columns
         this.runMigrations();
     }
@@ -343,6 +356,27 @@ class Database {
         });
     }
 
+    // Set user XP to a specific amount
+    setUserXP(userId, guildId, newXP) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO users (user_id, guild_id, xp, updated_at)
+                VALUES (?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id, guild_id) DO UPDATE SET
+                    xp = ?,
+                    updated_at = CURRENT_TIMESTAMP
+            `;
+            
+            this.db.run(query, [userId, guildId, newXP, newXP], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID);
+                }
+            });
+        });
+    }
+
     // Clear all voice join times for a guild (emergency cleanup)
     clearAllVoiceJoinTimes(guildId) {
         return new Promise((resolve, reject) => {
@@ -356,6 +390,151 @@ class Database {
                     reject(err);
                 } else {
                     resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Join2Create Configuration Methods
+    async initJoin2CreateTable() {
+        return new Promise((resolve, reject) => {
+            const query = `
+                CREATE TABLE IF NOT EXISTS join2create_config (
+                    guild_id TEXT PRIMARY KEY,
+                    trigger_channel_id TEXT,
+                    control_channel_id TEXT,
+                    category_id TEXT,
+                    enabled BOOLEAN DEFAULT 1,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `;
+            this.db.run(query, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    async initJoin2CreateChannelsTable() {
+        return new Promise((resolve, reject) => {
+            const query = `
+                CREATE TABLE IF NOT EXISTS join2create_channels (
+                    channel_id TEXT PRIMARY KEY,
+                    guild_id TEXT,
+                    owner_id TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (guild_id) REFERENCES join2create_config(guild_id)
+                )
+            `;
+            this.db.run(query, (err) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    setJoin2CreateConfig(guildId, config) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT OR REPLACE INTO join2create_config 
+                (guild_id, trigger_channel_id, control_channel_id, category_id, enabled, updated_at)
+                VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            `;
+            this.db.run(query, [
+                guildId, 
+                config.triggerChannelId, 
+                config.controlChannelId, 
+                config.categoryId, 
+                config.enabled ? 1 : 0
+            ], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    getJoin2CreateConfig(guildId) {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM join2create_config WHERE guild_id = ?`;
+            this.db.get(query, [guildId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    if (row) {
+                        resolve({
+                            triggerChannelId: row.trigger_channel_id,
+                            controlChannelId: row.control_channel_id,
+                            categoryId: row.category_id,
+                            enabled: Boolean(row.enabled)
+                        });
+                    } else {
+                        resolve(null);
+                    }
+                }
+            });
+        });
+    }
+
+    addJoin2CreateChannel(channelId, guildId, ownerId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                INSERT INTO join2create_channels (channel_id, guild_id, owner_id)
+                VALUES (?, ?, ?)
+            `;
+            this.db.run(query, [channelId, guildId, ownerId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    getJoin2CreateChannel(channelId) {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM join2create_channels WHERE channel_id = ?`;
+            this.db.get(query, [channelId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    }
+
+    removeJoin2CreateChannel(channelId) {
+        return new Promise((resolve, reject) => {
+            const query = `DELETE FROM join2create_channels WHERE channel_id = ?`;
+            this.db.run(query, [channelId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve();
+                }
+            });
+        });
+    }
+
+    getJoin2CreateChannelsByOwner(guildId, ownerId) {
+        return new Promise((resolve, reject) => {
+            const query = `SELECT * FROM join2create_channels WHERE guild_id = ? AND owner_id = ?`;
+            this.db.all(query, [guildId, ownerId], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows);
                 }
             });
         });

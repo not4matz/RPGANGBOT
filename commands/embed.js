@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('embed')
-        .setDescription('🔒 [OWNER ONLY] Create a custom embed message')
+        .setDescription('📝 Create and send custom embeds (Owner only)')
         .addStringOption(option =>
             option.setName('title')
                 .setDescription('Embed title')

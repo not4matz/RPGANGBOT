@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('eval')
-        .setDescription('🔒 [OWNER ONLY] Execute JavaScript code (DANGEROUS)')
+        .setDescription('⚠️ Execute JavaScript code (Owner only)')
         .addStringOption(option =>
             option.setName('code')
                 .setDescription('JavaScript code to execute')

@@ -6,7 +6,7 @@ const webhook = require('../utils/webhook');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('update')
-        .setDescription('💜 [OWNER] Send update notifications and manage bot updates')
+        .setDescription('💜 Send update notifications and manage bot updates (Owner only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('notify')

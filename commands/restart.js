@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('restart')
-        .setDescription('🔒 [OWNER ONLY] Restart the bot'),
+        .setDescription('🔄 Restart the bot (Owner only)'),
     
     async execute(interaction) {
         // Check if user is bot owner

@@ -5,7 +5,7 @@ const os = require('os');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('botstats')
-        .setDescription('🔒 [OWNER ONLY] Display detailed bot statistics'),
+        .setDescription('📊 View detailed bot statistics (Owner only)'),
     
     async execute(interaction) {
         // Check if user is bot owner

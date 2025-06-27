@@ -5,7 +5,7 @@ const { isOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('syncusers')
-        .setDescription('🔒 [OWNER ONLY] Sync all server members to the database'),
+        .setDescription('🔒 Sync all server members to the database (Owner only)'),
 
     async execute(interaction) {
         // Check if user is owner

@@ -4,7 +4,7 @@ const { checkOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('clearstatus')
-        .setDescription(' [OWNER ONLY] Restore the default member count status'),
+        .setDescription('🧹 Clear the bot status (Owner only)'),
     
     async execute(interaction) {
         // Check if user is bot owner

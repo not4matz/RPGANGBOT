@@ -5,7 +5,7 @@ const { isOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('voicefix')
-        .setDescription('🔒 [OWNER ONLY] Manually fix voice XP tracking for a user')
+        .setDescription('🔒 Manually fix voice XP tracking for a user (Owner only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('register')

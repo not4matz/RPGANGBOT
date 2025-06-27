@@ -6,7 +6,7 @@ const { getLevelFromXP } = require('../utils/leveling');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('leveladmin')
-        .setDescription('🔒 [OWNER ONLY] Manage the leveling system')
+        .setDescription('🔒 Admin commands for the leveling system (Owner only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('reset')

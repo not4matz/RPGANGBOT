@@ -4,7 +4,7 @@ const { isOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('channelupdater')
-        .setDescription('🔒 [OWNER ONLY] Manage the automatic channel updater')
+        .setDescription('🔒 Manage the automatic channel updater (Owner only)')
         .addSubcommand(subcommand =>
             subcommand
                 .setName('status')

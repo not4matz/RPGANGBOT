@@ -5,7 +5,7 @@ const { isOwner } = require('../utils/ownerCheck');
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('voicedebug')
-        .setDescription('🔒 [OWNER ONLY] Debug voice XP tracking for a specific user')
+        .setDescription('🔒 Debug voice XP tracking for a specific user (Owner only)')
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to debug')
