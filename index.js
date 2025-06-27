@@ -17,20 +17,9 @@ const { Client, GatewayIntentBits, Collection, ActivityType, Events } = require(
 const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
+const { initializeDatabase } = require('./utils/database');
+const { initializeVoiceXPTracker } = require('./utils/voiceXPTracker');
 const webhook = require('./utils/webhook');
-
-// Try to load webhook server, but don't crash if Express is missing
-let webhookServer = null;
-try {
-    webhookServer = require('./server/webhookServer');
-} catch (error) {
-    if (error.code === 'MODULE_NOT_FOUND' && error.message.includes('express')) {
-        console.log('⚠️  Express not found - GitHub webhook server disabled');
-        console.log('💡 Run "npm install" to enable webhook functionality');
-    } else {
-        console.error('❌ Error loading webhook server:', error.message);
-    }
-}
 
 // Create a new client instance
 const client = new Client({
@@ -115,9 +104,6 @@ client.once(Events.ClientReady, async () => {
     // Set bot activity
     client.user.setActivity('💜 Purple Bot Online', { type: ActivityType.Playing });
     
-    // Send startup notification via webhook
-    await webhook.sendStartupNotification();
-    
     // Initialize and start channel updater
     const channelUpdater = new ChannelUpdater(client);
     channelUpdater.start();
@@ -125,16 +111,8 @@ client.once(Events.ClientReady, async () => {
     // Store reference for potential future use
     client.channelUpdater = channelUpdater;
     
-    // Start GitHub webhook server
-    if (webhookServer) {
-        try {
-            await webhookServer.start();
-            client.webhookServer = webhookServer;
-        } catch (error) {
-            console.error('❌ Failed to start webhook server:', error);
-            console.log('⚠️ Bot will continue without webhook server');
-        }
-    }
+    // Send startup notification
+    webhook.send(`🚀 Bot started at ${new Date().toLocaleString()}`);
 });
 
 // Handle slash command interactions
@@ -181,12 +159,6 @@ async function shutdown(signal) {
     console.log(`\n🔄 Received ${signal}. Shutting down gracefully...`);
     
     try {
-        // Stop webhook server
-        if (client.webhookServer) {
-            console.log('🛑 Stopping webhook server...');
-            await client.webhookServer.stop();
-        }
-        
         // Stop channel updater
         if (client.channelUpdater) {
             console.log('🛑 Stopping channel updater...');
