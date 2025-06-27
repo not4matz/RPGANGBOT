@@ -92,7 +92,7 @@ class VoiceXPTracker {
                             }
 
                             // Always reset voice join time to current time to prevent XP abuse
-                            await database.setVoiceJoinTime(member.id, guild.id, Date.now());
+                            await database.updateVoiceJoinTime(member.id, guild.id, Date.now());
                             guildUsersRegistered++;
                             totalUsersRegistered++;
                         }
