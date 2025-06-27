@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { formatXP, getLevelColor, getLevelBadge, getLevelFromXP } = require('../utils/leveling');
 
@@ -95,7 +95,7 @@ module.exports = {
                 try {
                     await interaction.reply({
                         content: '❌ An error occurred while fetching the leaderboard!',
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (replyError) {
                     console.error('Failed to send error reply:', replyError);

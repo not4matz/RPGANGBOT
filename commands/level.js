@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData, getLevelFromXP } = require('../utils/leveling');
 
@@ -131,7 +131,7 @@ module.exports = {
                 try {
                     await interaction.reply({
                         content: '❌ An error occurred while fetching level information!',
-                        ephemeral: true
+                        flags: MessageFlags.Ephemeral
                     });
                 } catch (replyError) {
                     console.error('Failed to send error reply:', replyError);

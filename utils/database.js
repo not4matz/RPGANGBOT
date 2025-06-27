@@ -343,6 +343,24 @@ class Database {
         });
     }
 
+    // Clear all voice join times for a guild (emergency cleanup)
+    clearAllVoiceJoinTimes(guildId) {
+        return new Promise((resolve, reject) => {
+            const query = `
+                UPDATE users 
+                SET voice_join_time = 0, last_voice_xp_time = 0, updated_at = CURRENT_TIMESTAMP 
+                WHERE guild_id = ?
+            `;
+            this.db.run(query, [guildId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
     // Counting system methods
     // Get counting data for a channel
     getCountingData(guildId, channelId) {

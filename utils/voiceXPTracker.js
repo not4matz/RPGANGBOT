@@ -74,12 +74,15 @@ class VoiceXPTracker {
                 if (now - lastXPTime >= 60000) {
                     // Calculate minutes earned, but cap it to prevent excessive XP from long offline periods
                     const rawMinutesEarned = Math.floor((now - lastXPTime) / 60000);
-                    // Cap to maximum 5 minutes per interval to prevent XP abuse
-                    const minutesEarned = Math.min(rawMinutesEarned, 5);
+                    
+                    // Additional safety check: if the time difference is more than 24 hours, 
+                    // it's likely a bug or bot restart issue - cap to 5 minutes max
+                    const maxAllowedMinutes = rawMinutesEarned > 1440 ? 5 : Math.min(rawMinutesEarned, 5); // 1440 = 24 hours
+                    const minutesEarned = maxAllowedMinutes;
                     const xpGain = generateVoiceXP() * minutesEarned;
 
                     // Log if we're capping the XP gain
-                    if (rawMinutesEarned > 5) {
+                    if (rawMinutesEarned > minutesEarned) {
                         console.log(`⚠️ Capped voice XP for ${member.user.tag}: ${rawMinutesEarned} minutes -> ${minutesEarned} minutes (prevented ${(rawMinutesEarned - minutesEarned) * generateVoiceXP()} XP abuse)`);
                     }
 
@@ -150,16 +153,10 @@ class VoiceXPTracker {
                             continue;
                         }
 
-                        // Check if user already has a voice join time (shouldn't happen on startup, but safety check)
-                        const existingData = await database.getUser(member.user.id, guild.id);
-                        if (existingData && existingData.voice_join_time && existingData.voice_join_time > 0) {
-                            console.log(`⏭️ Skipping ${member.user.tag} - already has voice join time: ${existingData.voice_join_time}`);
-                            continue; // User already tracked
-                        }
-
-                        // Set voice join time to current time
+                        // Always reset voice join time to current time on startup to prevent XP abuse
+                        // This prevents massive XP gains from old timestamps when bot restarts
                         const now = Date.now();
-                        console.log(`🎤 Setting voice join time for ${member.user.tag} to ${now}`);
+                        console.log(`🎤 Setting voice join time for ${member.user.tag} to ${now} (startup reset)`);
                         await database.updateVoiceJoinTime(member.user.id, guild.id, now);
                         
                         guildUsersFound++;
@@ -240,6 +237,38 @@ class VoiceXPTracker {
 
         } catch (error) {
             console.error('Error sending voice level up message:', error);
+        }
+    }
+
+    /**
+     * Emergency cleanup: Reset all voice join times to current time
+     * This fixes any existing bad timestamps that could cause XP abuse
+     */
+    async emergencyResetVoiceTimes() {
+        try {
+            console.log('🚨 Emergency reset: Clearing all voice join times...');
+            
+            for (const guild of this.client.guilds.cache.values()) {
+                // Get all voice channels in the guild
+                const voiceChannels = guild.channels.cache.filter(channel => channel.type === 2);
+                
+                for (const channel of voiceChannels.values()) {
+                    const membersInChannel = channel.members.filter(member => !member.user.bot);
+                    
+                    for (const member of membersInChannel.values()) {
+                        // Reset their voice join time to now
+                        await database.updateVoiceJoinTime(member.user.id, guild.id, Date.now());
+                        console.log(`🔄 Reset voice time for ${member.user.tag}`);
+                    }
+                }
+                
+                // Also clear voice join times for users not currently in voice
+                await database.clearAllVoiceJoinTimes(guild.id);
+            }
+            
+            console.log('✅ Emergency reset completed');
+        } catch (error) {
+            console.error('Error in emergency reset:', error);
         }
     }
 }
