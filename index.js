@@ -18,6 +18,7 @@ const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
 const webhook = require('./utils/webhook');
+const WebhookServer = require('./server/webhookServer');
 
 // Create a new client instance
 const client = new Client({
@@ -111,6 +112,16 @@ client.once(Events.ClientReady, async () => {
     
     // Store reference for potential future use
     client.channelUpdater = channelUpdater;
+    
+    // Start GitHub webhook server
+    const webhookServer = new WebhookServer();
+    try {
+        await webhookServer.start();
+        client.webhookServer = webhookServer;
+    } catch (error) {
+        console.error('❌ Failed to start webhook server:', error);
+        console.log('⚠️ Bot will continue without webhook server');
+    }
 });
 
 // Handle slash command interactions
@@ -162,6 +173,9 @@ process.on('SIGINT', async () => {
     if (client.channelUpdater) {
         client.channelUpdater.stop();
     }
+    if (client.webhookServer) {
+        await client.webhookServer.stop();
+    }
     client.destroy();
     process.exit(0);
 });
@@ -174,6 +188,9 @@ process.on('SIGTERM', async () => {
     
     if (client.channelUpdater) {
         client.channelUpdater.stop();
+    }
+    if (client.webhookServer) {
+        await client.webhookServer.stop();
     }
     client.destroy();
     process.exit(0);
