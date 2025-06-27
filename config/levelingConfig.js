@@ -43,6 +43,10 @@ const LEVELING_CONFIG = {
         LEVEL_DEFAULT: '#DDA0DD'      // Plum for <5
     },
     
+    // System Colors
+    SUCCESS_COLOR: '#00ff00',         // Green for success messages
+    ERROR_COLOR: '#ff0000',           // Red for error messages
+    
     // Purple Theme Badges (Level-based)
     LEVEL_BADGES: {
         EASTER_EGG: '💀',             // Skull for easter egg
