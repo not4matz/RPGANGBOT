@@ -66,10 +66,6 @@ class UpdateWebhook {
         const netChangeText = netChange > 0 ? `+${netChange}` : `${netChange}`;
         const netChangeColor = netChange > 0 ? '🟢' : netChange < 0 ? '🔴' : '⚫';
 
-        // Create file list (limit to 10 files)
-        const fileList = changedFiles.slice(0, 10).map(file => `\`${file}\``).join('\n');
-        const moreFiles = changedFiles.length > 10 ? `\n*...and ${changedFiles.length - 10} more files*` : '';
-
         const embed = new EmbedBuilder()
             .setColor(colors.PRIMARY)
             .setTitle('💜 Bot Update Deployed')
@@ -91,15 +87,6 @@ class UpdateWebhook {
                 iconURL: 'https://cdn.discordapp.com/emojis/1234567890123456789.png' // You can add a custom emoji URL here
             })
             .setTimestamp(timestamp);
-
-        // Add files changed field if there are files
-        if (changedFiles.length > 0) {
-            embed.addFields({
-                name: `📁 **Modified Files [${filesChanged}]**`,
-                value: fileList + moreFiles,
-                inline: false
-            });
-        }
 
         return embed;
     }

@@ -14,7 +14,7 @@ const fs = require('fs');
 const parentDir = path.join(__dirname, '..');
 process.chdir(parentDir);
 
-const webhook = require('./utils/webhook');
+const webhook = require('../utils/webhook');
 
 class GitAnalyzer {
     constructor() {
