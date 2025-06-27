@@ -1,98 +1,84 @@
-const { Events, EmbedBuilder } = require('discord.js');
+/**
+ * Message XP tracking event - Cleaned and optimized
+ */
+
+const { EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
-const { generateMessageXP, canGainMessageXP, getLevelFromXP, getLevelColor, getLevelBadge } = require('../utils/leveling');
+const { generateMessageXP, canGainMessageXP, getLevelFromXP, validateUserData } = require('../utils/leveling');
+const { sendLevelUpMessage } = require('../utils/levelUpMessages');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
-    name: Events.MessageCreate,
+    name: 'messageCreate',
     async execute(message) {
-        // Ignore bots and system messages
-        if (message.author.bot || message.system) return;
-        
-        // Ignore DMs
-        if (!message.guild) return;
-
-        // Ignore commands (messages starting with /)
-        if (message.content.startsWith('/')) return;
+        // Skip bots, system messages, DMs, and commands
+        if (message.author.bot || 
+            message.system || 
+            !message.guild || 
+            message.content.startsWith('/')) {
+            return;
+        }
 
         try {
             const userId = message.author.id;
             const guildId = message.guild.id;
-
-            // Get current user data
-            const userData = await database.getUser(userId, guildId);
             
-            // Check cooldown
-            if (userData && !canGainMessageXP(userData.last_message_time)) {
+            // Get user data from database
+            let userData = await database.getUser(userId, guildId);
+            
+            // Auto-register user if not in database
+            if (!userData) {
+                await database.upsertUser(userId, guildId, 0);
+                userData = await database.getUser(userId, guildId);
+            }
+            
+            // Validate and fix data consistency
+            userData = validateUserData(userData);
+            if (!userData) {
+                console.error(`❌ Failed to validate user data for ${message.author.tag}`);
+                return;
+            }
+            
+            // Check cooldown using centralized config
+            if (!canGainMessageXP(userData.last_message_time || 0)) {
                 return; // User is on cooldown
             }
-
-            // Generate XP (now fixed 5 XP)
+            
+            // Generate XP using centralized function
             const xpGain = generateMessageXP();
+            const newXP = userData.xp + xpGain;
             
-            // Update user in database
-            await database.upsertUser(userId, guildId, xpGain);
+            // Calculate levels (with easter egg support)
+            const oldLevel = getLevelFromXP(userData.xp, userId);
+            const newLevel = getLevelFromXP(newXP, userId);
             
-            // Get updated user data to check for level up
-            const updatedUser = await database.getUser(userId, guildId);
-            if (!updatedUser) return;
-
-            // Calculate new level
-            const newLevel = getLevelFromXP(updatedUser.xp, userId);
-            const oldLevel = updatedUser.level;
-
-            // Check if user leveled up
+            // Update database with new XP and message count
+            await database.addXP(userId, guildId, xpGain);
+            await database.incrementMessageCount(userId, guildId);
+            
+            // Check for level up
             if (newLevel > oldLevel) {
-                // Update level in database
-                await database.updateUserLevel(userId, guildId, newLevel);
+                console.log(`🎉 ${message.author.tag} leveled up from ${oldLevel} to ${newLevel} via message XP`);
                 
-                // Send level up message
-                const levelUpEmbed = new EmbedBuilder()
-                    .setTitle('🎉 Level Up!')
-                    .setDescription(`${message.author} has reached **Level ${newLevel}**! ${getLevelBadge(newLevel)}`)
-                    .setColor(getLevelColor(newLevel))
-                    .addFields(
-                        { 
-                            name: '💜 Stats', 
-                            value: `**Level:** ${newLevel}\n**Total XP:** ${updatedUser.xp.toLocaleString()}\n**Messages:** ${updatedUser.total_messages}`, 
-                            inline: true 
-                        }
-                    )
-                    .setThumbnail(message.author.displayAvatarURL())
-                    .setFooter({
-                        text: 'Purple Bot • Message Leveling',
-                        iconURL: message.guild.iconURL()
-                    })
-                    .setTimestamp();
-
-                // Send level up message to specific channel
-                const levelUpChannelId = '1361198962488381490';
-                let targetChannel = message.guild.channels.cache.get(levelUpChannelId);
+                // Get updated user data for level-up message
+                const updatedUserData = await database.getUser(userId, guildId);
+                const member = message.guild.members.cache.get(userId);
                 
-                // Fallback to current channel if specific channel not found
-                if (!targetChannel) {
-                    targetChannel = message.channel;
-                    console.warn(`Level-up channel ${levelUpChannelId} not found, using current channel`);
+                if (member && updatedUserData) {
+                    // Use centralized level-up message system
+                    await sendLevelUpMessage(
+                        message.guild, 
+                        member, 
+                        newLevel, 
+                        updatedUserData, 
+                        'message',
+                        message.channel // Use current channel as fallback
+                    );
                 }
-                
-                try {
-                    await targetChannel.send({ embeds: [levelUpEmbed] });
-                } catch (error) {
-                    console.error('Error sending level up message:', error);
-                    // Try fallback to current channel if target channel failed
-                    if (targetChannel !== message.channel) {
-                        try {
-                            await message.channel.send({ embeds: [levelUpEmbed] });
-                        } catch (fallbackError) {
-                            console.error('Error sending fallback level up message:', fallbackError);
-                        }
-                    }
-                }
-
-                console.log(`🎉 ${message.author.tag} leveled up to ${newLevel} in ${message.guild.name}`);
             }
-
+            
         } catch (error) {
-            console.error('Error processing XP gain:', error);
+            console.error('❌ Error in messageCreate event:', error);
         }
-    },
+    }
 };

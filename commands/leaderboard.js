@@ -1,6 +1,12 @@
+/**
+ * Leaderboard command - Cleaned and optimized
+ * Shows server ranking with purple theme
+ */
+
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { formatXP, getLevelColor, getLevelBadge, getLevelFromXP } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -8,107 +14,88 @@ module.exports = {
         .setDescription('View the server leaderboard')
         .addIntegerOption(option =>
             option.setName('page')
-                .setDescription('Page number (10 users per page)')
+                .setDescription('Page number to view')
                 .setRequired(false)
                 .setMinValue(1)),
-    
+
     async execute(interaction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
         try {
             const page = interaction.options.getInteger('page') || 1;
-            const usersPerPage = 10;
-            const offset = (page - 1) * usersPerPage;
-
-            await interaction.deferReply();
+            const limit = 10;
+            const offset = (page - 1) * limit;
 
             // Get leaderboard data
-            const leaderboard = await database.getLeaderboard(interaction.guild.id, usersPerPage + 1); // +1 to check if there's a next page
-            
+            const leaderboard = await database.getLeaderboard(interaction.guild.id, limit, offset);
+            const totalUsers = await database.getTotalUsers(interaction.guild.id);
+            const totalPages = Math.ceil(totalUsers / limit);
+
             if (leaderboard.length === 0) {
-                const embed = new EmbedBuilder()
-                    .setTitle('👑 Server Leaderboard')
-                    .setDescription('No users found! Start chatting to appear on the leaderboard!')
-                    .setColor('#6A0DAD');
-
-                return await interaction.editReply({ embeds: [embed] });
-            }
-
-            // Check if page exists
-            const totalUsers = leaderboard.length;
-            const hasNextPage = totalUsers > usersPerPage;
-            const displayUsers = leaderboard.slice(0, usersPerPage);
-
-            if (offset >= totalUsers && page > 1) {
                 return await interaction.editReply({
-                    content: `❌ Page ${page} doesn't exist! There are only ${Math.ceil(totalUsers / usersPerPage)} page(s).`
+                    content: page === 1 
+                        ? '📊 No users found in the leaderboard yet!' 
+                        : `📊 Page ${page} is empty. There are only ${totalPages} pages.`
                 });
             }
 
-            // Build leaderboard string
-            let leaderboardText = '';
-            const medals = ['👑', '💎', '🔮']; // Purple-themed medals
-            
-            for (let i = 0; i < displayUsers.length; i++) {
-                const userData = displayUsers[i];
+            // Create leaderboard embed with purple theme
+            const leaderboardEmbed = new EmbedBuilder()
+                .setTitle('🏆 Server Leaderboard')
+                .setDescription(`**${interaction.guild.name}** • Page ${page}/${totalPages}`)
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_50_PLUS) // Use purple theme color
+                .setThumbnail(interaction.guild.iconURL({ dynamic: true }));
+
+            // Add leaderboard entries
+            let description = '';
+            for (let i = 0; i < leaderboard.length; i++) {
+                const userData = leaderboard[i];
                 const rank = offset + i + 1;
                 const user = await interaction.client.users.fetch(userData.user_id).catch(() => null);
+                const displayName = user ? user.displayName : 'Unknown User';
                 
                 // Calculate display level (with easter egg support)
-                const displayLevel = getLevelFromXP(userData.xp, userData.user_id);
+                const level = getLevelFromXP(userData.xp, userData.user_id);
+                const badge = getLevelBadge(level);
                 
-                const medal = rank <= 3 ? medals[rank - 1] : `**${rank}.**`;
-                const username = user ? user.displayName : 'Unknown User';
-                const badge = getLevelBadge(displayLevel);
+                // Format voice time
+                const voiceHours = Math.floor((userData.voice_time_minutes || 0) / 60);
+                const voiceMinutes = (userData.voice_time_minutes || 0) % 60;
                 
-                leaderboardText += `${medal} ${badge} **${username}**\n`;
-                leaderboardText += `   Level ${displayLevel} • ${formatXP(userData.xp)} XP • ${userData.total_messages.toLocaleString()} messages • ${Math.floor(userData.voice_time_minutes || 0)} minutes in voice\n\n`;
+                // Medal emojis for top 3 using purple theme
+                let medal = '';
+                if (rank === 1) medal = '👑'; // Crown for 1st
+                else if (rank === 2) medal = '💎'; // Diamond for 2nd  
+                else if (rank === 3) medal = '🔮'; // Crystal ball for 3rd
+                else medal = `**${rank}.**`;
+
+                description += `${medal} ${badge} **${displayName}**\n`;
+                description += `   Level ${level} • ${formatXP(userData.xp)} XP\n`;
+                description += `   💬 ${(userData.total_messages || 0).toLocaleString()} msgs • 🎤 ${voiceHours}h ${voiceMinutes}m\n\n`;
             }
 
-            // Get user's rank if they're not on current page
-            let userRankText = '';
-            const userRank = await database.getUserRank(interaction.user.id, interaction.guild.id);
-            if (userRank && (userRank < offset + 1 || userRank > offset + usersPerPage)) {
-                const userData = await database.getUser(interaction.user.id, interaction.guild.id);
-                if (userData) {
-                    const userDisplayLevel = getLevelFromXP(userData.xp, interaction.user.id);
-                    userRankText = `\n**Your Rank:** #${userRank} • Level ${userDisplayLevel} • ${formatXP(userData.xp)} XP`;
-                }
+            leaderboardEmbed.setDescription(`**${interaction.guild.name}** • Page ${page}/${totalPages}\n\n${description}`);
+
+            // Add footer with navigation info
+            let footerText = LEVELING_CONFIG.EMBED_FOOTER_TEXT;
+            if (totalPages > 1) {
+                footerText += ` • Use /leaderboard page:${page + 1} for next page`;
             }
 
-            // Create embed
-            const embed = new EmbedBuilder()
-                .setTitle('👑 Server Leaderboard')
-                .setDescription(leaderboardText + userRankText)
-                .setColor('#6A0DAD')
-                .setFooter({
-                    text: `Page ${page}${hasNextPage ? ` • Use /leaderboard page:${page + 1} for more` : ''} • ${interaction.guild.name}`,
-                    iconURL: interaction.guild.iconURL()
-                })
-                .setTimestamp();
+            leaderboardEmbed.setFooter({
+                text: footerText,
+                iconURL: interaction.guild.iconURL()
+            });
 
-            await interaction.editReply({ embeds: [embed] });
+            leaderboardEmbed.setTimestamp();
+
+            await interaction.editReply({ embeds: [leaderboardEmbed] });
 
         } catch (error) {
-            console.error('Error in leaderboard command:', error);
-            
-            // Check if interaction is still valid before trying to respond
-            if (!interaction.replied && !interaction.deferred) {
-                try {
-                    await interaction.reply({
-                        content: '❌ An error occurred while fetching the leaderboard!',
-                        flags: MessageFlags.Ephemeral
-                    });
-                } catch (replyError) {
-                    console.error('Failed to send error reply:', replyError);
-                }
-            } else {
-                try {
-                    await interaction.editReply({
-                        content: '❌ An error occurred while fetching the leaderboard!'
-                    });
-                } catch (editError) {
-                    console.error('Failed to edit reply with error:', editError);
-                }
-            }
+            console.error('❌ Error in leaderboard command:', error);
+            await interaction.editReply({
+                content: '❌ An error occurred while fetching the leaderboard. Please try again.',
+            });
         }
     },
 };

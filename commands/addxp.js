@@ -1,7 +1,13 @@
+/**
+ * Add XP command - Owner-only XP manipulation
+ * Allows bot owners to add XP to users with logging and level updates
+ */
+
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { isOwner } = require('../utils/ownerCheck');
 const database = require('../utils/database');
 const { getLevelFromXP, formatXP, getLevelColor, getLevelBadge } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -28,7 +34,11 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setTitle('❌ Access Denied')
                     .setDescription('This command is restricted to bot owners only.')
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.reply({ 
@@ -52,7 +62,11 @@ module.exports = {
                 const errorEmbed = new EmbedBuilder()
                     .setTitle('❌ Database Error')
                     .setDescription('Failed to retrieve user data.')
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.editReply({ embeds: [errorEmbed] });
@@ -91,10 +105,10 @@ module.exports = {
                     }
                 )
                 .setColor(getLevelColor(newLevel))
-                .setThumbnail(targetUser.displayAvatarURL())
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
                 .setFooter({ 
-                    text: `Purple Bot • Action by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 })
                 .setTimestamp();
 
@@ -113,12 +127,16 @@ module.exports = {
             console.log(`➕ ${interaction.user.tag} added ${xpAmount} XP to ${targetUser.tag} (${oldXP} -> ${newXP}). Reason: ${reason}`);
 
         } catch (error) {
-            console.error('Error in addxp command:', error);
+            console.error('❌ Error in addxp command:', error);
             
             const errorEmbed = new EmbedBuilder()
                 .setTitle('❌ Error')
                 .setDescription('An error occurred while adding XP.')
-                .setColor('#FF0000')
+                .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             try {
@@ -131,8 +149,8 @@ module.exports = {
                     });
                 }
             } catch (replyError) {
-                console.error('Failed to send error reply:', replyError);
+                console.error('❌ Failed to send error reply:', replyError);
             }
         }
-    },
+    }
 };

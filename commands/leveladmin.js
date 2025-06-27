@@ -1,7 +1,13 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+/**
+ * Level Admin command - Cleaned and optimized
+ * Owner-only admin commands for the leveling system
+ */
+
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { checkOwner } = require('../utils/ownerCheck');
 const database = require('../utils/database');
-const { getLevelFromXP } = require('../utils/leveling');
+const { getLevelFromXP, formatXP } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -77,10 +83,10 @@ module.exports = {
                     break;
             }
         } catch (error) {
-            console.error('Error in leveladmin command:', error);
+            console.error('❌ Error in leveladmin command:', error);
             await interaction.reply({
                 content: '❌ An error occurred while executing the command!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     },
@@ -93,7 +99,7 @@ async function handleReset(interaction) {
     if (user.bot) {
         return await interaction.reply({
             content: '❌ Cannot reset bot levels!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -101,7 +107,7 @@ async function handleReset(interaction) {
     if (!userData) {
         return await interaction.reply({
             content: `❌ ${user} has no level data to reset!`,
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -111,79 +117,80 @@ async function handleReset(interaction) {
         .setTitle('✅ User Reset')
         .setDescription(`Successfully reset ${user}'s level data`)
         .addFields(
-            { name: 'Previous Level', value: userData.level.toString(), inline: true },
-            { name: 'Previous XP', value: userData.xp.toLocaleString(), inline: true },
-            { name: 'Previous Messages', value: userData.total_messages.toLocaleString(), inline: true }
+            { name: '💜 Previous Level', value: userData.level.toString(), inline: true },
+            { name: '💜 Previous XP', value: formatXP(userData.xp), inline: true },
+            { name: '💜 Previous Messages', value: (userData.total_messages || 0).toLocaleString(), inline: true }
         )
-        .setColor('#ff0000')
+        .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_25_PLUS)
+        .setFooter({ text: LEVELING_CONFIG.EMBED_FOOTER_TEXT })
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleResetAll(interaction) {
     const guildId = interaction.guild.id;
 
     // Get count before reset
-    const leaderboard = await database.getLeaderboard(guildId, 1000);
-    const userCount = leaderboard.length;
-
+    const userCount = await database.getTotalUsers(guildId);
+    
     if (userCount === 0) {
         return await interaction.reply({
-            content: '❌ No user data to reset in this server!',
-            ephemeral: true
+            content: '❌ No users to reset in this server!',
+            flags: MessageFlags.Ephemeral
         });
     }
 
-    await database.resetGuild(guildId);
+    await database.resetAllUsers(guildId);
 
     const embed = new EmbedBuilder()
         .setTitle('⚠️ Server Reset Complete')
-        .setDescription(`Successfully reset level data for **${userCount}** users in this server`)
-        .setColor('#ff0000')
+        .setDescription(`Successfully reset **${userCount}** users in this server`)
+        .addFields(
+            { name: '🗑️ Users Reset', value: userCount.toString(), inline: true },
+            { name: '⚠️ Warning', value: 'All level data has been permanently deleted', inline: false }
+        )
+        .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_75_PLUS)
+        .setFooter({ text: LEVELING_CONFIG.EMBED_FOOTER_TEXT })
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleSetXP(interaction) {
     const user = interaction.options.getUser('user');
-    const xp = interaction.options.getInteger('xp');
+    const newXP = interaction.options.getInteger('xp');
     const guildId = interaction.guild.id;
 
     if (user.bot) {
         return await interaction.reply({
             content: '❌ Cannot modify bot levels!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 
-    // Get current user data for comparison
-    let userData = await database.getUser(user.id, guildId);
-    if (!userData) {
-        // Create user if they don't exist
-        await database.upsertUser(user.id, guildId, 0);
-        userData = { xp: 0, level: 1 };
-    }
+    // Get current user data
+    const userData = await database.getUser(user.id, guildId);
+    const previousXP = userData ? userData.xp : 0;
+    const previousLevel = userData ? userData.level : 1;
 
-    // Calculate new level
-    const newLevel = getLevelFromXP(xp, user.id);
-    
-    // Update XP and level using the proper database method
-    await database.setUserXP(user.id, guildId, xp, newLevel);
+    // Set new XP and calculate new level (with easter egg support)
+    const newLevel = getLevelFromXP(newXP, user.id);
+    await database.setUserXP(user.id, guildId, newXP);
 
     const embed = new EmbedBuilder()
-        .setTitle('✅ XP Updated')
-        .setDescription(`Successfully set ${user}'s XP`)
+        .setTitle('✅ XP Set')
+        .setDescription(`Successfully set XP for ${user}`)
         .addFields(
-            { name: 'New XP', value: xp.toLocaleString(), inline: true },
-            { name: 'New Level', value: newLevel.toString(), inline: true },
-            { name: 'Previous XP', value: userData.xp.toLocaleString(), inline: true }
+            { name: '💜 New XP', value: formatXP(newXP), inline: true },
+            { name: '💜 New Level', value: newLevel.toString(), inline: true },
+            { name: '💜 Previous XP', value: formatXP(previousXP), inline: true }
         )
-        .setColor('#00ff00')
+        .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_50_PLUS)
+        .setFooter({ text: LEVELING_CONFIG.EMBED_FOOTER_TEXT })
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleAddXP(interaction) {
@@ -194,7 +201,7 @@ async function handleAddXP(interaction) {
     if (user.bot) {
         return await interaction.reply({
             content: '❌ Cannot modify bot levels!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -213,20 +220,21 @@ async function handleAddXP(interaction) {
     const newLevel = getLevelFromXP(newXP, user.id);
     
     // Update the level to match the new XP total
-    await database.setUserXP(user.id, guildId, newXP, newLevel);
+    await database.setUserXP(user.id, guildId, newXP);
 
     const embed = new EmbedBuilder()
         .setTitle('✅ XP Added')
         .setDescription(`Successfully added XP to ${user}`)
         .addFields(
-            { name: 'XP Added', value: xpToAdd.toLocaleString(), inline: true },
-            { name: 'New Total XP', value: newXP.toLocaleString(), inline: true },
-            { name: 'New Level', value: newLevel.toString(), inline: true }
+            { name: '💜 XP Added', value: formatXP(xpToAdd), inline: true },
+            { name: '💜 New Total XP', value: formatXP(newXP), inline: true },
+            { name: '💜 New Level', value: newLevel.toString(), inline: true }
         )
-        .setColor('#00ff00')
+        .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_10_PLUS)
+        .setFooter({ text: LEVELING_CONFIG.EMBED_FOOTER_TEXT })
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }
 
 async function handleStats(interaction) {
@@ -239,7 +247,7 @@ async function handleStats(interaction) {
     if (totalUsers === 0) {
         return await interaction.reply({
             content: '❌ No leveling data found for this server!',
-            ephemeral: true
+            flags: MessageFlags.Ephemeral
         });
     }
 
@@ -250,23 +258,28 @@ async function handleStats(interaction) {
     const maxLevel = Math.max(...leaderboard.map(user => user.level));
     const topUser = leaderboard[0];
 
+    // Format voice time
+    const totalVoiceHours = Math.floor(totalVoiceMinutes / 60);
+    const avgVoiceMinutes = Math.floor(totalVoiceMinutes / totalUsers);
+
     const embed = new EmbedBuilder()
         .setTitle('📊 Leveling System Statistics')
         .setDescription(`Statistics for **${interaction.guild.name}**`)
         .addFields(
             { name: '👥 Total Users', value: totalUsers.toLocaleString(), inline: true },
             { name: '💬 Total Messages', value: totalMessages.toLocaleString(), inline: true },
-            { name: '🎤 Total Voice Time', value: `${Math.floor(totalVoiceMinutes).toLocaleString()} minutes`, inline: true },
-            { name: '⭐ Total XP', value: totalXP.toLocaleString(), inline: true },
+            { name: '🎤 Total Voice Time', value: `${totalVoiceHours.toLocaleString()}h`, inline: true },
+            { name: '⭐ Total XP', value: formatXP(totalXP), inline: true },
             { name: '📈 Average Level', value: avgLevel.toFixed(1), inline: true },
             { name: '🏆 Highest Level', value: maxLevel.toString(), inline: true },
             { name: '👑 Top User', value: `<@${topUser.user_id}>\nLevel ${topUser.level}`, inline: true },
-            { name: '📊 XP Breakdown', value: `💬 Messages: ~${(totalMessages * 5).toLocaleString()} XP\n🎤 Voice: ~${(totalVoiceMinutes * 5).toLocaleString()} XP`, inline: true },
-            { name: '⏱️ Voice Stats', value: `${Math.floor(totalVoiceMinutes / 60).toLocaleString()} hours total\n${Math.floor(totalVoiceMinutes / totalUsers).toLocaleString()} avg minutes per user`, inline: true }
+            { name: '💜 XP Breakdown', value: `💬 Messages: ~${formatXP(totalMessages * LEVELING_CONFIG.XP_PER_MESSAGE)}\n🎤 Voice: ~${formatXP(totalVoiceMinutes * LEVELING_CONFIG.XP_PER_VOICE_MINUTE)}`, inline: true },
+            { name: '⏱️ Voice Stats', value: `${totalVoiceHours.toLocaleString()} hours total\n${avgVoiceMinutes} avg minutes per user`, inline: true }
         )
-        .setColor('#5865f2')
-        .setThumbnail(interaction.guild.iconURL())
+        .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_100_PLUS)
+        .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
+        .setFooter({ text: LEVELING_CONFIG.EMBED_FOOTER_TEXT })
         .setTimestamp();
 
-    await interaction.reply({ embeds: [embed], ephemeral: true });
+    await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 }

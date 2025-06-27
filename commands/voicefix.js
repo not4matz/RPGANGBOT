@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { isOwner } = require('../utils/ownerCheck');
 
@@ -34,11 +34,19 @@ module.exports = {
     async execute(interaction) {
         // Check if user is owner
         if (!isOwner(interaction.user.id)) {
-            return await interaction.reply({
-                content: '❌ This command is only available to the bot owner.',
-                ephemeral: true
+            const embed = new EmbedBuilder()
+                .setTitle('❌ Access Denied')
+                .setDescription('This command is restricted to bot owners only.')
+                .setColor('#FF0000')
+                .setTimestamp();
+
+            return await interaction.reply({ 
+                embeds: [embed], 
+                flags: MessageFlags.Ephemeral 
             });
         }
+
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         const subcommand = interaction.options.getSubcommand();
         const targetUser = interaction.options.getUser('user');
@@ -48,9 +56,9 @@ module.exports = {
             const member = guild.members.cache.get(targetUser.id);
             
             if (!member) {
-                return await interaction.reply({
+                return await interaction.editReply({
                     content: '❌ User not found in this server.',
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -58,17 +66,17 @@ module.exports = {
                 case 'register':
                     // Check if user is in voice
                     if (!member.voice.channel) {
-                        return await interaction.reply({
+                        return await interaction.editReply({
                             content: '❌ User is not in a voice channel.',
-                            ephemeral: true
+                            flags: MessageFlags.Ephemeral
                         });
                     }
 
                     // Check if user is alone
                     if (member.voice.channel.members.filter(m => !m.user.bot).size <= 1) {
-                        return await interaction.reply({
+                        return await interaction.editReply({
                             content: '❌ User is alone in the voice channel.',
-                            ephemeral: true
+                            flags: MessageFlags.Ephemeral
                         });
                     }
 
@@ -87,7 +95,7 @@ module.exports = {
                         })
                         .setTimestamp();
 
-                    await interaction.reply({ embeds: [registerEmbed], ephemeral: true });
+                    await interaction.editReply({ embeds: [registerEmbed], flags: MessageFlags.Ephemeral });
                     console.log(`🎤 Manually registered ${targetUser.tag} for voice XP tracking`);
                     break;
 
@@ -106,7 +114,7 @@ module.exports = {
                         })
                         .setTimestamp();
 
-                    await interaction.reply({ embeds: [unregisterEmbed], ephemeral: true });
+                    await interaction.editReply({ embeds: [unregisterEmbed], flags: MessageFlags.Ephemeral });
                     console.log(`🎤 Manually unregistered ${targetUser.tag} from voice XP tracking`);
                     break;
 
@@ -139,16 +147,16 @@ module.exports = {
                         })
                         .setTimestamp();
 
-                    await interaction.reply({ embeds: [resetEmbed], ephemeral: true });
+                    await interaction.editReply({ embeds: [resetEmbed], flags: MessageFlags.Ephemeral });
                     console.log(`🎤 Reset voice XP tracking for ${targetUser.tag} (reregistered: ${reregistered})`);
                     break;
             }
 
         } catch (error) {
             console.error('Error in voicefix command:', error);
-            await interaction.reply({
+            await interaction.editReply({
                 content: '❌ An error occurred while fixing voice XP tracking.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     },

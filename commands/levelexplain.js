@@ -1,5 +1,11 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const { CONFIG, getXPForLevel } = require('../utils/leveling');
+/**
+ * Level Explain command - Cleaned and optimized
+ * Comprehensive explanation of the leveling system
+ */
+
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
+const { getXPForLevel } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,70 +18,70 @@ module.exports = {
             const mainEmbed = new EmbedBuilder()
                 .setTitle('🔮 Leveling System Explained')
                 .setDescription('Here\'s everything you need to know about gaining XP and leveling up!')
-                .setColor('#6A0DAD')
-                .setThumbnail(interaction.guild.iconURL())
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_50_PLUS)
+                .setThumbnail(interaction.guild.iconURL({ dynamic: true }))
                 .addFields(
                     {
                         name: '💬 Message XP',
-                        value: `• **${CONFIG.XP_PER_MESSAGE} XP** per message\n• **${CONFIG.MESSAGE_COOLDOWN / 60000} minute** cooldown between messages\n• Only counts in text channels\n• Bot messages don't count`,
+                        value: `• **${LEVELING_CONFIG.XP_PER_MESSAGE} XP** per message\n• **${LEVELING_CONFIG.MESSAGE_COOLDOWN / 60000} minute** cooldown between messages\n• Only counts in text channels\n• Bot messages don't count`,
                         inline: false
                     },
                     {
                         name: '🎤 Voice XP',
-                        value: `• **${CONFIG.XP_PER_VOICE_MINUTE} XP** per minute in voice channels\n• Must not be alone in the channel\n• Must not be muted or deafened\n• Automatic XP every minute`,
+                        value: `• **${LEVELING_CONFIG.XP_PER_VOICE_MINUTE} XP** per minute in voice channels\n• Must not be alone in the channel\n• Must not be muted or deafened\n• Automatic XP every minute`,
                         inline: false
                     },
                     {
                         name: '📈 Exponential Level Progression',
-                        value: `• **Level 1**: 0 XP (starting point)\n• **Level 2**: ${getXPForLevel(2)} XP needed\n• **Level 5**: ${getXPForLevel(5)} XP needed\n• **Level 10**: ${getXPForLevel(10)} XP needed\n• **Level 25**: ${getXPForLevel(25)} XP needed\n• Each level requires **${CONFIG.MULTIPLIER}x more XP** than the previous gap!`,
+                        value: `• **Level 1**: 0 XP (starting point)\n• **Level 2**: ${getXPForLevel(2)} XP needed\n• **Level 5**: ${getXPForLevel(5)} XP needed\n• **Level 10**: ${getXPForLevel(10)} XP needed\n• **Level 25**: ${getXPForLevel(25)} XP needed\n• Each level requires **${LEVELING_CONFIG.MULTIPLIER}x more XP** than the previous gap!`,
                         inline: false
                     }
                 )
                 .setFooter({ 
-                    text: 'Purple Bot • Use /level to check your progress!',
-                    iconURL: interaction.client.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 })
                 .setTimestamp();
 
             // Create XP calculation examples embed
             const examplesEmbed = new EmbedBuilder()
                 .setTitle('🧮 XP Calculation Examples')
-                .setColor('#8A2BE2')
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_25_PLUS)
                 .addFields(
                     {
                         name: '💬 Message Examples',
-                        value: `• **10 messages** = ${CONFIG.XP_PER_MESSAGE * 10} XP\n• **50 messages** = ${CONFIG.XP_PER_MESSAGE * 50} XP\n• **100 messages** = ${CONFIG.XP_PER_MESSAGE * 100} XP`,
+                        value: `• **10 messages** = ${LEVELING_CONFIG.XP_PER_MESSAGE * 10} XP\n• **50 messages** = ${LEVELING_CONFIG.XP_PER_MESSAGE * 50} XP\n• **100 messages** = ${LEVELING_CONFIG.XP_PER_MESSAGE * 100} XP`,
                         inline: true
                     },
                     {
                         name: '🎤 Voice Examples',
-                        value: `• **10 minutes** = ${CONFIG.XP_PER_VOICE_MINUTE * 10} XP\n• **30 minutes** = ${CONFIG.XP_PER_VOICE_MINUTE * 30} XP\n• **1 hour** = ${CONFIG.XP_PER_VOICE_MINUTE * 60} XP`,
+                        value: `• **10 minutes** = ${LEVELING_CONFIG.XP_PER_VOICE_MINUTE * 10} XP\n• **30 minutes** = ${LEVELING_CONFIG.XP_PER_VOICE_MINUTE * 30} XP\n• **1 hour** = ${LEVELING_CONFIG.XP_PER_VOICE_MINUTE * 60} XP`,
                         inline: true
                     },
                     {
                         name: '🎯 Level Goals (Exponential)',
-                        value: `• **Level 2**: ${Math.ceil(getXPForLevel(2) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(2) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 5**: ${Math.ceil(getXPForLevel(5) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(5) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 10**: ${Math.ceil(getXPForLevel(10) / CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(10) / CONFIG.XP_PER_VOICE_MINUTE)} minutes voice`,
+                        value: `• **Level 2**: ${Math.ceil(getXPForLevel(2) / LEVELING_CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(2) / LEVELING_CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 5**: ${Math.ceil(getXPForLevel(5) / LEVELING_CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(5) / LEVELING_CONFIG.XP_PER_VOICE_MINUTE)} minutes voice\n• **Level 10**: ${Math.ceil(getXPForLevel(10) / LEVELING_CONFIG.XP_PER_MESSAGE)} messages OR ${Math.ceil(getXPForLevel(10) / LEVELING_CONFIG.XP_PER_VOICE_MINUTE)} minutes voice`,
                         inline: false
                     },
                     {
                         name: '⚡ Exponential Growth',
-                        value: `The leveling system uses **exponential progression**:\n• Early levels (1-10) are quick and accessible\n• Mid levels (10-50) require regular participation\n• High levels (50-100) demand serious dedication\n• **Level 100** = ~150 hours of voice chat! 👑`,
+                        value: `The leveling system uses **exponential progression**:\n• Early levels (1-10) are quick and accessible\n• Mid levels (10-50) require regular participation\n• High levels (50-100) need serious dedication\n• **Level 100** takes approximately **${Math.ceil(getXPForLevel(100) / LEVELING_CONFIG.XP_PER_VOICE_MINUTE / 60)} hours** of voice chat!`,
                         inline: false
                     }
                 )
                 .setFooter({ 
-                    text: 'Purple Bot • XP System',
-                    iconURL: interaction.client.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 });
 
-            // Create tips embed
+            // Create tips and features embed
             const tipsEmbed = new EmbedBuilder()
-                .setTitle('💜 Tips & Features')
-                .setColor('#9932CC')
+                .setTitle('💡 Tips & Features')
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_10_PLUS)
                 .addFields(
                     {
-                        name: '🚀 Level Up Announcements',
-                        value: '• Automatic announcements when you level up\n• Special purple-themed badges for different level ranges\n• Colorful embeds to celebrate your progress',
+                        name: '🎉 Level-Up Announcements',
+                        value: '• Get congratulated when you level up!\n• Announcements appear in the designated channel\n• Shows your new level and progress',
                         inline: false
                     },
                     {
@@ -95,14 +101,14 @@ module.exports = {
                     }
                 )
                 .setFooter({ 
-                    text: 'Purple Bot • Every message and minute in voice counts!',
-                    iconURL: interaction.client.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 });
 
             // Create level badges explanation embed
             const badgesEmbed = new EmbedBuilder()
                 .setTitle('🎖️ Level Badges & Colors')
-                .setColor('#4B0082')
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_100_PLUS)
                 .addFields(
                     {
                         name: '🟣 Beginner (Levels 1-4)',
@@ -141,8 +147,8 @@ module.exports = {
                     }
                 )
                 .setFooter({ 
-                    text: 'Purple Bot • Which badge will you earn next?',
-                    iconURL: interaction.client.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 });
 
             // Send all embeds
@@ -152,10 +158,10 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error('Error in levelexplain command:', error);
+            console.error('❌ Error in levelexplain command:', error);
             await interaction.reply({
                 content: '❌ An error occurred while explaining the leveling system!',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     }

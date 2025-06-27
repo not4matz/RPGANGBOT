@@ -1,15 +1,17 @@
 /**
- * Leveling system utilities
+ * Leveling system utilities - Cleaned and optimized
  */
 
-// XP configuration
+const LEVELING_CONFIG = require('../config/levelingConfig');
+
+// Legacy CONFIG export for backward compatibility
 const CONFIG = {
-    XP_PER_MESSAGE: 1,
-    XP_PER_VOICE_MINUTE: 5,
-    MESSAGE_COOLDOWN: 300000, // 5 minute cooldown between message XP gains
-    VOICE_INTERVAL: 60000,   // 1 minute intervals for voice XP
-    BASE_XP: 35,             // XP needed for level 2
-    MULTIPLIER: 1.041        // Exponential multiplier (1.041x growth per level)
+    XP_PER_MESSAGE: LEVELING_CONFIG.XP_PER_MESSAGE,
+    XP_PER_VOICE_MINUTE: LEVELING_CONFIG.XP_PER_VOICE_MINUTE,
+    MESSAGE_COOLDOWN: LEVELING_CONFIG.MESSAGE_COOLDOWN,
+    VOICE_INTERVAL: LEVELING_CONFIG.VOICE_INTERVAL,
+    BASE_XP: LEVELING_CONFIG.BASE_XP,
+    MULTIPLIER: LEVELING_CONFIG.MULTIPLIER
 };
 
 /**
@@ -20,16 +22,10 @@ const CONFIG = {
 function getXPForLevel(level) {
     if (level <= 1) return 0;
     
-    // Exponential XP system: Each level requires exponentially more XP
-    // Level 2: 100 XP
-    // Level 3: 100 + 150 = 250 XP  
-    // Level 4: 250 + 225 = 475 XP
-    // Level 5: 475 + 337.5 = 812.5 XP (rounded to 813)
-    // Formula: Sum of (BASE_XP * MULTIPLIER^(i-2)) for i from 2 to level
-    
+    // Exponential XP system using centralized config
     let totalXP = 0;
     for (let i = 2; i <= level; i++) {
-        totalXP += Math.floor(CONFIG.BASE_XP * Math.pow(CONFIG.MULTIPLIER, i - 2));
+        totalXP += Math.floor(LEVELING_CONFIG.BASE_XP * Math.pow(LEVELING_CONFIG.MULTIPLIER, i - 2));
     }
     return totalXP;
 }
@@ -41,19 +37,19 @@ function getXPForLevel(level) {
  * @returns {number} - Current level (or easter egg level)
  */
 function getLevelFromXP(xp, userId = null) {
-    // Easter egg: Special user always shows level -69
-    if (userId === '1362836529008869587') {
-        return -69;
+    // Easter egg: Special user always shows configured easter egg level
+    if (userId === LEVELING_CONFIG.EASTER_EGG_USER_ID) {
+        return LEVELING_CONFIG.EASTER_EGG_LEVEL;
     }
     
-    if (xp < CONFIG.BASE_XP) return 1;
+    if (xp < LEVELING_CONFIG.BASE_XP) return 1;
     
     // Find the highest level where required XP <= current XP
     let level = 1;
     while (getXPForLevel(level + 1) <= xp) {
         level++;
         // Safety check to prevent infinite loops for very high XP
-        if (level > 200) break;
+        if (level > LEVELING_CONFIG.MAX_LEVEL_SAFETY) break;
     }
     return level;
 }
@@ -84,7 +80,7 @@ function getXPProgress(currentXP, currentLevel) {
  * @returns {number} - Fixed XP for messages
  */
 function generateMessageXP() {
-    return CONFIG.XP_PER_MESSAGE;
+    return LEVELING_CONFIG.XP_PER_MESSAGE;
 }
 
 /**
@@ -92,7 +88,7 @@ function generateMessageXP() {
  * @returns {number} - Fixed XP for voice activity
  */
 function generateVoiceXP() {
-    return CONFIG.XP_PER_VOICE_MINUTE;
+    return LEVELING_CONFIG.XP_PER_VOICE_MINUTE;
 }
 
 /**
@@ -101,7 +97,7 @@ function generateVoiceXP() {
  * @returns {boolean} - True if user can gain XP
  */
 function canGainMessageXP(lastMessageTime) {
-    return Date.now() - lastMessageTime >= CONFIG.MESSAGE_COOLDOWN;
+    return Date.now() - lastMessageTime >= LEVELING_CONFIG.MESSAGE_COOLDOWN;
 }
 
 /**
@@ -111,18 +107,18 @@ function canGainMessageXP(lastMessageTime) {
  * @param {number} length - Length of progress bar
  * @returns {string} - Progress bar string
  */
-function createProgressBar(current, max, length = 10) {
+function createProgressBar(current, max, length = LEVELING_CONFIG.PROGRESS_BAR_LENGTH) {
     // Safety checks to prevent negative values
     const safeCurrent = Math.max(0, current || 0);
     const safeMax = Math.max(1, max || 1); // Ensure max is at least 1 to prevent division by zero
-    const safeLength = Math.max(1, length || 10);
+    const safeLength = Math.max(1, length || LEVELING_CONFIG.PROGRESS_BAR_LENGTH);
     
     const progress = Math.min(safeCurrent / safeMax, 1);
     const filled = Math.floor(progress * safeLength);
     const empty = Math.max(0, safeLength - filled); // Ensure non-negative
     
-    // Purple-themed progress bar
-    return '🟣'.repeat(filled) + '⚫'.repeat(empty);
+    // Purple-themed progress bar using config
+    return LEVELING_CONFIG.PROGRESS_BAR_FILLED.repeat(filled) + LEVELING_CONFIG.PROGRESS_BAR_EMPTY.repeat(empty);
 }
 
 /**
@@ -140,17 +136,17 @@ function formatXP(xp) {
  * @returns {string} - Hex color code
  */
 function getLevelColor(level) {
-    // Easter egg: Special red for level -69
-    if (level === -69) return '#ff0000';
+    // Easter egg: Special color for easter egg level
+    if (level === LEVELING_CONFIG.EASTER_EGG_LEVEL) return LEVELING_CONFIG.LEVEL_COLORS.EASTER_EGG;
     
-    // Purple gradient theme
-    if (level >= 100) return '#4B0082'; // Indigo for 100+
-    if (level >= 75) return '#6A0DAD';  // Purple for 75+
-    if (level >= 50) return '#8A2BE2';  // Blue Violet for 50+
-    if (level >= 25) return '#9932CC';  // Dark Orchid for 25+
-    if (level >= 10) return '#BA55D3';  // Medium Orchid for 10+
-    if (level >= 5) return '#DA70D6';   // Orchid for 5+
-    return '#DDA0DD';                   // Plum for <5
+    // Purple gradient theme using centralized config
+    if (level >= 100) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_100_PLUS;
+    if (level >= 75) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_75_PLUS;
+    if (level >= 50) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_50_PLUS;
+    if (level >= 25) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_25_PLUS;
+    if (level >= 10) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_10_PLUS;
+    if (level >= 5) return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_5_PLUS;
+    return LEVELING_CONFIG.LEVEL_COLORS.LEVEL_DEFAULT;
 }
 
 /**
@@ -159,17 +155,17 @@ function getLevelColor(level) {
  * @returns {string} - Emoji badge
  */
 function getLevelBadge(level) {
-    // Easter egg: Special skull for level -69
-    if (level === -69) return '💀';
+    // Easter egg: Special badge for easter egg level
+    if (level === LEVELING_CONFIG.EASTER_EGG_LEVEL) return LEVELING_CONFIG.LEVEL_BADGES.EASTER_EGG;
     
-    // Purple-themed badges
-    if (level >= 100) return '👑'; // Crown for 100+
-    if (level >= 75) return '💎';  // Diamond for 75+
-    if (level >= 50) return '🔮';  // Crystal ball for 50+
-    if (level >= 25) return '💜';  // Purple heart for 25+
-    if (level >= 10) return '🌟';  // Star for 10+
-    if (level >= 5) return '✨';   // Sparkles for 5+
-    return '🟣';                   // Purple circle for <5
+    // Purple-themed badges using centralized config
+    if (level >= 100) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_100_PLUS;
+    if (level >= 75) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_75_PLUS;
+    if (level >= 50) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_50_PLUS;
+    if (level >= 25) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_25_PLUS;
+    if (level >= 10) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_10_PLUS;
+    if (level >= 5) return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_5_PLUS;
+    return LEVELING_CONFIG.LEVEL_BADGES.LEVEL_DEFAULT;
 }
 
 /**
@@ -181,7 +177,7 @@ function validateUserData(userData) {
     if (!userData) return null;
     
     // Skip validation for easter egg user to avoid console warnings
-    if (userData.user_id === '1362836529008869587') {
+    if (userData.user_id === LEVELING_CONFIG.EASTER_EGG_USER_ID) {
         return userData;
     }
     
@@ -189,7 +185,6 @@ function validateUserData(userData) {
     const correctLevel = getLevelFromXP(userData.xp, userData.user_id);
     
     // If the stored level is incorrect, return corrected data
-    // Note: Easter egg users (level -69) are handled by getLevelFromXP, so this will work correctly
     if (userData.level !== correctLevel) {
         console.log(`⚠️ Level inconsistency detected for user ${userData.user_id}: stored level ${userData.level}, should be ${correctLevel} (XP: ${userData.xp})`);
         return {
@@ -202,7 +197,8 @@ function validateUserData(userData) {
 }
 
 module.exports = {
-    CONFIG,
+    CONFIG, // Legacy export for backward compatibility
+    LEVELING_CONFIG, // New centralized config
     getXPForLevel,
     getLevelFromXP,
     getXPProgress,

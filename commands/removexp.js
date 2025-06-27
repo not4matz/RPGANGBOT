@@ -1,7 +1,13 @@
+/**
+ * Remove XP command - Owner-only XP manipulation
+ * Allows bot owners to remove XP from users with logging and level updates
+ */
+
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { isOwner } = require('../utils/ownerCheck');
 const database = require('../utils/database');
 const { getLevelFromXP, formatXP } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -28,7 +34,11 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setTitle('❌ Access Denied')
                     .setDescription('This command is restricted to bot owners only.')
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.reply({ 
@@ -49,7 +59,11 @@ module.exports = {
                 const errorEmbed = new EmbedBuilder()
                     .setTitle('❌ User Not Found')
                     .setDescription(`${targetUser} is not registered in the leveling system.`)
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.editReply({ embeds: [errorEmbed] });
@@ -87,11 +101,11 @@ module.exports = {
                         inline: false 
                     }
                 )
-                .setColor('#FF6B6B')
-                .setThumbnail(targetUser.displayAvatarURL())
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_25_PLUS)
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
                 .setFooter({ 
-                    text: `Purple Bot • Action by ${interaction.user.tag}`,
-                    iconURL: interaction.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
                 })
                 .setTimestamp();
 
@@ -110,12 +124,16 @@ module.exports = {
             console.log(`🗑️ ${interaction.user.tag} removed ${actualRemoved} XP from ${targetUser.tag} (${oldXP} -> ${newXP}). Reason: ${reason}`);
 
         } catch (error) {
-            console.error('Error in removexp command:', error);
+            console.error('❌ Error in removexp command:', error);
             
             const errorEmbed = new EmbedBuilder()
                 .setTitle('❌ Error')
                 .setDescription('An error occurred while removing XP.')
-                .setColor('#FF0000')
+                .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             try {
@@ -128,8 +146,8 @@ module.exports = {
                     });
                 }
             } catch (replyError) {
-                console.error('Failed to send error reply:', replyError);
+                console.error('❌ Failed to send error reply:', replyError);
             }
         }
-    },
+    }
 };

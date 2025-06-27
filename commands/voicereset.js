@@ -1,5 +1,11 @@
+/**
+ * Voice Reset command - Owner-only emergency voice XP tracking reset
+ * Resets all voice join times to prevent XP abuse from old timestamps
+ */
+
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const { isOwner } = require('../utils/ownerCheck');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -13,7 +19,11 @@ module.exports = {
                 const embed = new EmbedBuilder()
                     .setTitle('❌ Access Denied')
                     .setDescription('This command is restricted to bot owners only.')
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.reply({ 
@@ -30,7 +40,11 @@ module.exports = {
                 const errorEmbed = new EmbedBuilder()
                     .setTitle('❌ Error')
                     .setDescription('Voice XP tracker not found!')
-                    .setColor('#FF0000')
+                    .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                    .setFooter({ 
+                        text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                        iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                    })
                     .setTimestamp();
 
                 return await interaction.editReply({ embeds: [errorEmbed] });
@@ -49,19 +63,29 @@ module.exports = {
                         inline: false 
                     }
                 )
-                .setColor('#00FF00')
-                .setFooter({ text: 'Purple Bot • Emergency System' })
+                .setColor(LEVELING_CONFIG.SUCCESS_COLOR)
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [successEmbed] });
 
+            // Log the action
+            console.log(`🚨 ${interaction.user.tag} performed emergency voice XP reset`);
+
         } catch (error) {
-            console.error('Error in voicereset command:', error);
+            console.error('❌ Error in voicereset command:', error);
             
             const errorEmbed = new EmbedBuilder()
                 .setTitle('❌ Error')
                 .setDescription('An error occurred while resetting voice XP times.')
-                .setColor('#FF0000')
+                .setColor(LEVELING_CONFIG.ERROR_COLOR)
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             try {
@@ -74,8 +98,8 @@ module.exports = {
                     });
                 }
             } catch (replyError) {
-                console.error('Failed to send error reply:', replyError);
+                console.error('❌ Failed to send error reply:', replyError);
             }
         }
-    },
+    }
 };

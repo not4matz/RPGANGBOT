@@ -1,6 +1,12 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+/**
+ * Sync Users command - Owner-only bulk user database sync
+ * Adds all existing server members to the leveling database
+ */
+
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { isOwner } = require('../utils/ownerCheck');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -12,11 +18,11 @@ module.exports = {
         if (!isOwner(interaction.user.id)) {
             return await interaction.reply({
                 content: '❌ This command is only available to the bot owner.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
-        await interaction.deferReply({ ephemeral: true });
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
         try {
             const guild = interaction.guild;
@@ -34,7 +40,11 @@ module.exports = {
             const embed = new EmbedBuilder()
                 .setTitle('🔄 Syncing Users to Database')
                 .setDescription('Processing all server members...')
-                .setColor('#0099ff')
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_25_PLUS)
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [embed] });
@@ -65,7 +75,7 @@ module.exports = {
             const resultEmbed = new EmbedBuilder()
                 .setTitle('✅ User Sync Complete')
                 .setDescription('Finished syncing all server members to the database')
-                .setColor('#00ff00')
+                .setColor(LEVELING_CONFIG.LEVEL_COLORS.LEVEL_50_PLUS)
                 .addFields(
                     { 
                         name: '📊 Results', 
@@ -78,6 +88,10 @@ module.exports = {
                         inline: false
                     }
                 )
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [resultEmbed] });
@@ -85,20 +99,24 @@ module.exports = {
             console.log(`✅ User sync complete for ${guild.name}: ${addedCount} added, ${existingCount} existing, ${errorCount} errors`);
 
         } catch (error) {
-            console.error('Error in syncusers command:', error);
+            console.error('❌ Error in syncusers command:', error);
             
             const errorEmbed = new EmbedBuilder()
                 .setTitle('❌ Sync Error')
                 .setDescription('An error occurred while syncing users to the database')
-                .setColor('#ff0000')
+                .setColor(LEVELING_CONFIG.ERROR_COLOR)
                 .addFields({
                     name: 'Error Details',
                     value: error.message || 'Unknown error',
                     inline: false
                 })
+                .setFooter({ 
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.client.user.displayAvatarURL({ dynamic: true })
+                })
                 .setTimestamp();
 
             await interaction.editReply({ embeds: [errorEmbed] });
         }
-    },
+    }
 };

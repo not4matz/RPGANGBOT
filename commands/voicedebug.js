@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { isOwner } = require('../utils/ownerCheck');
 
@@ -16,7 +16,7 @@ module.exports = {
         if (!isOwner(interaction.user.id)) {
             return await interaction.reply({
                 content: '❌ This command is only available to the bot owner.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
 
@@ -133,13 +133,13 @@ module.exports = {
                 });
             }
 
-            await interaction.reply({ embeds: [embed], ephemeral: true });
+            await interaction.reply({ embeds: [embed], flags: MessageFlags.Ephemeral });
 
         } catch (error) {
             console.error('Error in voicedebug command:', error);
             await interaction.reply({
                 content: '❌ An error occurred while debugging voice XP.',
-                ephemeral: true
+                flags: MessageFlags.Ephemeral
             });
         }
     },

@@ -1,150 +1,128 @@
+/**
+ * Level command - Cleaned and optimized
+ * Shows user level, XP, progress, and ranking information
+ */
+
 const { SlashCommandBuilder, EmbedBuilder, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
-const { getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData, getLevelFromXP } = require('../utils/leveling');
+const { getLevelFromXP, getXPForLevel, getXPProgress, createProgressBar, formatXP, getLevelColor, getLevelBadge, validateUserData } = require('../utils/leveling');
+const LEVELING_CONFIG = require('../config/levelingConfig');
 
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('level')
-        .setDescription('Check your level or someone else\'s level')
+        .setDescription('Check your or another user\'s level and XP')
         .addUserOption(option =>
             option.setName('user')
-                .setDescription('User to check level for (optional)')
+                .setDescription('User to check level for')
                 .setRequired(false)),
-    
-    async execute(interaction) {
-        try {
-            // Defer reply immediately to prevent timeout
-            await interaction.deferReply();
 
+    async execute(interaction) {
+        await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+
+        try {
             const targetUser = interaction.options.getUser('user') || interaction.user;
             const guildId = interaction.guild.id;
-
-            // Check if target is a bot
-            if (targetUser.bot) {
-                return await interaction.editReply({
-                    content: '🤖 Bots don\'t have levels!'
-                });
-            }
-
-            // Get user data
+            
+            // Get user data from database
             let userData = await database.getUser(targetUser.id, guildId);
             
+            // Auto-register user if not in database
             if (!userData) {
-                // Create default level 0 data for users who haven't sent messages yet
-                userData = {
-                    user_id: targetUser.id,
-                    guild_id: guildId,
-                    xp: 0,
-                    level: 1,
-                    total_messages: 0,
-                    voice_time_minutes: 0,
-                    last_message_time: 0,
-                    voice_join_time: 0,
-                    last_voice_xp_time: 0
+                await database.upsertUser(targetUser.id, guildId, 0);
+                userData = await database.getUser(targetUser.id, guildId);
+            }
+            
+            // Validate and fix data consistency
+            userData = validateUserData(userData);
+            if (!userData) {
+                return await interaction.editReply({
+                    content: '❌ Error retrieving user data. Please try again.',
+                });
+            }
+            
+            // Update database if data was corrected
+            if (userData.level !== (await database.getUser(targetUser.id, guildId)).level) {
+                await database.updateUserLevel(targetUser.id, guildId, userData.level);
+            }
+            
+            // Calculate level information (with easter egg support)
+            const currentLevel = getLevelFromXP(userData.xp, targetUser.id);
+            const isEasterEgg = currentLevel === LEVELING_CONFIG.EASTER_EGG_LEVEL;
+            
+            // Get ranking
+            const ranking = await database.getUserRank(targetUser.id, guildId);
+            
+            // Calculate progress to next level
+            let progressInfo;
+            if (isEasterEgg) {
+                // Special handling for easter egg user
+                progressInfo = {
+                    current: '∞',
+                    needed: '∞',
+                    progress: '∞',
+                    progressBar: '🔥'.repeat(15) + ' ∞%',
+                    nextLevel: 'eternal'
+                };
+            } else {
+                const nextLevel = currentLevel + 1;
+                const currentLevelXP = getXPForLevel(currentLevel);
+                const nextLevelXP = getXPForLevel(nextLevel);
+                const progressXP = userData.xp - currentLevelXP;
+                const neededXP = nextLevelXP - currentLevelXP;
+                
+                progressInfo = {
+                    current: formatXP(progressXP),
+                    needed: formatXP(neededXP),
+                    progress: formatXP(nextLevelXP - userData.xp),
+                    progressBar: createProgressBar(progressXP, neededXP) + ` ${Math.floor((progressXP / neededXP) * 100)}%`,
+                    nextLevel: nextLevel
                 };
             }
-
-            // Validate and fix user data consistency
-            userData = validateUserData(userData);
             
-            // If data was corrected, update the database
-            if (userData.level !== (await database.getUser(targetUser.id, guildId))?.level) {
-                await database.setUserXP(targetUser.id, guildId, userData.xp);
-                console.log(`✅ Fixed level data for user ${targetUser.id}`);
-            }
-
-            // Get user rank
-            const rank = await database.getUserRank(targetUser.id, guildId) || 'Unranked';
+            // Format voice time
+            const voiceHours = Math.floor((userData.voice_time_minutes || 0) / 60);
+            const voiceMinutes = (userData.voice_time_minutes || 0) % 60;
+            const voiceTimeFormatted = `${voiceHours}h ${voiceMinutes}m`;
             
-            // Calculate display level (with easter egg support)
-            const displayLevel = getLevelFromXP(userData.xp, targetUser.id);
-            
-            // Calculate progress (use actual level for progress calculations)
-            const progress = getXPProgress(userData.xp, userData.level);
-            const progressBar = createProgressBar(progress.currentLevelXP, progress.xpNeededForNext, 15);
-
             // Create embed with purple theme
-            const embed = new EmbedBuilder()
-                .setTitle(`${getLevelBadge(displayLevel)} Level Information`)
+            const levelEmbed = new EmbedBuilder()
+                .setTitle(`${getLevelBadge(currentLevel)} Level Information`)
                 .setDescription(`**${targetUser.displayName}**'s leveling stats`)
-                .setColor(getLevelColor(displayLevel))
-                .setThumbnail(targetUser.displayAvatarURL())
+                .setColor(getLevelColor(currentLevel))
+                .setThumbnail(targetUser.displayAvatarURL({ dynamic: true }))
                 .addFields(
                     {
-                        name: '🔮 Level',
-                        value: `**${displayLevel}**`,
+                        name: '🔮 **Level & XP**',
+                        value: `**Level:** ${currentLevel}\n**Total XP:** ${formatXP(userData.xp)}\n**Rank:** #${ranking}`,
                         inline: true
                     },
                     {
-                        name: '👑 Rank',
-                        value: rank ? `**#${rank}**` : '**Unranked**',
+                        name: '👑 **Activity Stats**',
+                        value: `**Messages:** ${(userData.total_messages || 0).toLocaleString()}\n**Voice Time:** ${voiceTimeFormatted}\n**XP Sources:** ${Math.round(((userData.total_messages || 0) / (userData.xp || 1)) * 100)}% msg, ${Math.round((((userData.voice_time_minutes || 0) * LEVELING_CONFIG.XP_PER_VOICE_MINUTE) / (userData.xp || 1)) * 100)}% voice`,
                         inline: true
                     },
                     {
-                        name: '💬 Messages',
-                        value: `**${userData.total_messages.toLocaleString()}**`,
-                        inline: true
-                    },
-                    {
-                        name: '🎤 Voice Time',
-                        value: `**${Math.floor(userData.voice_time_minutes || 0)}** minutes`,
-                        inline: true
-                    },
-                    {
-                        name: '✨ Total XP',
-                        value: `**${formatXP(userData.xp)}**`,
-                        inline: true
-                    },
-                    {
-                        name: '💜 XP Sources',
-                        value: `💬 Messages: ~${(userData.total_messages * 5).toLocaleString()} XP\n🎤 Voice: ~${((userData.voice_time_minutes || 0) * 5).toLocaleString()} XP`,
-                        inline: true
-                    },
-                    {
-                        name: '🌟 Progress to Next Level',
-                        value: displayLevel === -69 ? 
-                            `**∞** / **∞** XP\n${'💀'.repeat(15)} ∞%\n*You are eternal at level -69!*` :
-                            `**${formatXP(progress.currentLevelXP)}** / **${formatXP(progress.xpNeededForNext)}** XP\n${progressBar} ${progress.progress}%`,
-                        inline: false
-                    },
-                    {
-                        name: '🔮 XP Remaining',
-                        value: displayLevel === -69 ? 
-                            `**∞** XP needed to escape the void...` :
-                            `**${formatXP(progress.xpRemaining)}** XP needed for Level ${userData.level + 1}`,
+                        name: '✨ **Progress**',
+                        value: isEasterEgg 
+                            ? `${progressInfo.progressBar}\n**${progressInfo.current}** / **${progressInfo.needed}** XP\n*You are eternal at level ${LEVELING_CONFIG.EASTER_EGG_LEVEL}!*`
+                            : `${progressInfo.progressBar}\n**${progressInfo.current}** / **${progressInfo.needed}** XP\n**${progressInfo.progress}** XP needed for level ${progressInfo.nextLevel}`,
                         inline: false
                     }
                 )
                 .setFooter({
-                    text: `Purple Bot • Requested by ${interaction.user.displayName}`,
-                    iconURL: interaction.user.displayAvatarURL()
+                    text: LEVELING_CONFIG.EMBED_FOOTER_TEXT,
+                    iconURL: interaction.guild.iconURL()
                 })
                 .setTimestamp();
 
-            await interaction.editReply({ embeds: [embed] });
+            await interaction.editReply({ embeds: [levelEmbed] });
 
         } catch (error) {
-            console.error('Error in level command:', error);
-            
-            // Check if interaction is still valid before trying to respond
-            if (!interaction.replied && !interaction.deferred) {
-                try {
-                    await interaction.reply({
-                        content: '❌ An error occurred while fetching level information!',
-                        flags: MessageFlags.Ephemeral
-                    });
-                } catch (replyError) {
-                    console.error('Failed to send error reply:', replyError);
-                }
-            } else {
-                try {
-                    await interaction.editReply({
-                        content: '❌ An error occurred while fetching level information!'
-                    });
-                } catch (editError) {
-                    console.error('Failed to edit reply with error:', editError);
-                }
-            }
+            console.error('❌ Error in level command:', error);
+            await interaction.editReply({
+                content: '❌ An error occurred while fetching level information. Please try again.',
+            });
         }
     },
 };
