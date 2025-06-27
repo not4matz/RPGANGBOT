@@ -189,20 +189,34 @@ class Database {
     }
 
     // Get leaderboard
-    getLeaderboard(guildId, limit = 10) {
+    getLeaderboard(guildId, limit = 10, offset = 0) {
         return new Promise((resolve, reject) => {
             const query = `
                 SELECT user_id, xp, level, total_messages, voice_time_minutes
                 FROM users 
                 WHERE guild_id = ? 
                 ORDER BY xp DESC 
-                LIMIT ?
+                LIMIT ? OFFSET ?
             `;
-            this.db.all(query, [guildId, limit], (err, rows) => {
+            this.db.all(query, [guildId, limit, offset], (err, rows) => {
                 if (err) {
                     reject(err);
                 } else {
-                    resolve(rows);
+                    resolve(rows || []);
+                }
+            });
+        });
+    }
+
+    // Get total number of users in a guild
+    getTotalUsers(guildId) {
+        return new Promise((resolve, reject) => {
+            const query = 'SELECT COUNT(*) as count FROM users WHERE guild_id = ?';
+            this.db.get(query, [guildId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row ? row.count : 0);
                 }
             });
         });
