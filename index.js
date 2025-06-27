@@ -112,7 +112,7 @@ client.once(Events.ClientReady, async () => {
     client.channelUpdater = channelUpdater;
     
     // Send startup notification
-    webhook.send(`🚀 Bot started at ${new Date().toLocaleString()}`);
+    webhook.sendStartupNotification();
 });
 
 // Handle slash command interactions
