@@ -17,6 +17,7 @@ const { Client, GatewayIntentBits, Collection, ActivityType, Events } = require(
 const fs = require('fs');
 const path = require('path');
 const ChannelUpdater = require('./utils/channelUpdater');
+const JailManager = require('./utils/jailManager');
 const { initializeDatabase } = require('./utils/database');
 const { initializeVoiceXPTracker } = require('./utils/voiceXPTracker');
 const webhook = require('./utils/webhook');
@@ -108,8 +109,13 @@ client.once(Events.ClientReady, async () => {
     const channelUpdater = new ChannelUpdater(client);
     channelUpdater.start();
     
-    // Store reference for potential future use
+    // Initialize and start jail manager
+    const jailManager = new JailManager(client);
+    jailManager.start();
+    
+    // Store references for potential future use
     client.channelUpdater = channelUpdater;
+    client.jailManager = jailManager;
     
     // Send startup notification
     webhook.sendStartupNotification();
@@ -163,6 +169,12 @@ async function shutdown(signal) {
         if (client.channelUpdater) {
             console.log('🛑 Stopping channel updater...');
             client.channelUpdater.stop();
+        }
+        
+        // Stop jail manager
+        if (client.jailManager) {
+            console.log('🛑 Stopping jail manager...');
+            client.jailManager.stop();
         }
         
         // Destroy Discord client

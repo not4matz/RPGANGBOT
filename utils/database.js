@@ -65,6 +65,21 @@ class Database {
             )
         `;
 
+        const createJailTable = `
+            CREATE TABLE IF NOT EXISTS jail (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id TEXT NOT NULL,
+                guild_id TEXT NOT NULL,
+                reason TEXT,
+                jail_time INTEGER NOT NULL,
+                jail_end_time INTEGER NOT NULL,
+                jailed_by TEXT NOT NULL,
+                original_roles TEXT,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE(user_id, guild_id)
+            )
+        `;
+
         this.db.run(createUsersTable, (err) => {
             if (err) {
                 console.error('❌ Error creating users table:', err.message);
@@ -86,6 +101,14 @@ class Database {
                 console.error('❌ Error creating wakeup_permissions table:', err.message);
             } else {
                 console.log('✅ Wakeup permissions table ready');
+            }
+        });
+
+        this.db.run(createJailTable, (err) => {
+            if (err) {
+                console.error('❌ Error creating jail table:', err.message);
+            } else {
+                console.log('✅ Jail table ready');
             }
         });
 
@@ -765,6 +788,90 @@ class Database {
                     reject(err);
                 } else {
                     resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Jail system methods
+    // Add user to jail
+    jailUser(userId, guildId, reason, jailTimeMinutes, jailedBy, originalRoles) {
+        return new Promise((resolve, reject) => {
+            const jailEndTime = Date.now() + (jailTimeMinutes * 60 * 1000);
+            const query = `
+                INSERT INTO jail (user_id, guild_id, reason, jail_time, jail_end_time, jailed_by, original_roles)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                ON CONFLICT(user_id, guild_id) DO UPDATE SET
+                    reason = excluded.reason,
+                    jail_time = excluded.jail_time,
+                    jail_end_time = excluded.jail_end_time,
+                    jailed_by = excluded.jailed_by,
+                    original_roles = excluded.original_roles,
+                    created_at = CURRENT_TIMESTAMP
+            `;
+            this.db.run(query, [userId, guildId, reason, jailTimeMinutes, jailEndTime, jailedBy, originalRoles], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.lastID || this.changes);
+                }
+            });
+        });
+    }
+
+    // Get jail data for a user
+    getJailData(userId, guildId) {
+        return new Promise((resolve, reject) => {
+            const query = 'SELECT * FROM jail WHERE user_id = ? AND guild_id = ?';
+            this.db.get(query, [userId, guildId], (err, row) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(row);
+                }
+            });
+        });
+    }
+
+    // Remove user from jail
+    unjailUser(userId, guildId) {
+        return new Promise((resolve, reject) => {
+            const query = 'DELETE FROM jail WHERE user_id = ? AND guild_id = ?';
+            this.db.run(query, [userId, guildId], function(err) {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(this.changes);
+                }
+            });
+        });
+    }
+
+    // Get all expired jail entries
+    getExpiredJails(guildId) {
+        return new Promise((resolve, reject) => {
+            const now = Date.now();
+            const query = 'SELECT * FROM jail WHERE guild_id = ? AND jail_end_time <= ?';
+            this.db.all(query, [guildId, now], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows || []);
+                }
+            });
+        });
+    }
+
+    // Get all active jails for a guild
+    getActiveJails(guildId) {
+        return new Promise((resolve, reject) => {
+            const now = Date.now();
+            const query = 'SELECT * FROM jail WHERE guild_id = ? AND jail_end_time > ?';
+            this.db.all(query, [guildId, now], (err, rows) => {
+                if (err) {
+                    reject(err);
+                } else {
+                    resolve(rows || []);
                 }
             });
         });
