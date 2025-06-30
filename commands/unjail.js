@@ -1,7 +1,20 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const database = require('../utils/database');
 const { isOwner } = require('../utils/ownerCheck');
-const { COLORS } = require('../utils/colors');
+
+// Fallback colors in case utils/colors.js fails to load
+let COLORS;
+try {
+    COLORS = require('../utils/colors');
+} catch (error) {
+    console.log('⚠️ Failed to load colors.js, using fallback colors');
+    COLORS = {
+        PRIMARY: '#6A0DAD',
+        SUCCESS: '#8A2BE2',
+        WARNING: '#9370DB',
+        ERROR: '#4B0082'
+    };
+}
 
 module.exports = {
     data: new SlashCommandBuilder()
