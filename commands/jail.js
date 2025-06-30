@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, PermissionFlagsBits, MessageFlags } = require('discord.js');
 const database = require('../utils/database');
 const { isOwner } = require('../utils/ownerCheck');
 const { COLORS } = require('../utils/colors');
@@ -51,7 +51,7 @@ module.exports = {
                         .setDescription('The specified user is not in this server.')
                         .setFooter({ text: 'Purple Bot Jail System' })
                         .setTimestamp()],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -65,7 +65,7 @@ module.exports = {
                         .setDescription('I need **Manage Roles** and **Manage Channels** permissions to jail users.')
                         .setFooter({ text: 'Purple Bot Jail System' })
                         .setTimestamp()],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -78,7 +78,7 @@ module.exports = {
                         .setDescription(`I cannot jail ${targetUser.tag} because their highest role is equal to or higher than mine.\n\nPlease move my role above theirs in the server settings.`)
                         .setFooter({ text: 'Purple Bot Jail System' })
                         .setTimestamp()],
-                    ephemeral: true
+                    flags: MessageFlags.Ephemeral
                 });
             }
 
@@ -96,7 +96,7 @@ module.exports = {
                     .setFooter({ text: 'Purple Bot' })
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             // Prevent jailing bots or the owner
@@ -108,7 +108,7 @@ module.exports = {
                     .setFooter({ text: 'Purple Bot' })
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             if (isOwner(targetUser.id)) {
@@ -119,7 +119,7 @@ module.exports = {
                     .setFooter({ text: 'Purple Bot' })
                     .setTimestamp();
 
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                return interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
 
             // Create or get the "Jailed" role
@@ -172,13 +172,13 @@ module.exports = {
             }
 
             // Store original roles
-            const originalRoles = targetMember.roles.cache
+            const originalRoles = member.roles.cache
                 .filter(role => role.id !== guild.id) // Exclude @everyone
                 .map(role => role.id)
                 .join(',');
 
             // Remove all roles except @everyone and add jailed role
-            await targetMember.roles.set([jailedRole.id]);
+            await member.roles.set([jailedRole.id]);
 
             // Add to database
             await database.jailUser(
@@ -244,9 +244,9 @@ module.exports = {
                 .setTimestamp();
 
             if (interaction.replied || interaction.deferred) {
-                await interaction.followUp({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.followUp({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             } else {
-                await interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+                await interaction.reply({ embeds: [errorEmbed], flags: MessageFlags.Ephemeral });
             }
         }
     },
