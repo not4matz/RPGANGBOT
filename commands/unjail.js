@@ -29,6 +29,20 @@ module.exports = {
         const guild = interaction.guild;
 
         try {
+            // Check if bot has necessary permissions
+            const botMember = guild.members.me;
+            if (!botMember.permissions.has([PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ManageChannels])) {
+                return interaction.reply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(COLORS.ERROR)
+                        .setTitle('❌ Missing Permissions')
+                        .setDescription('I need **Manage Roles** and **Manage Channels** permissions to unjail users.')
+                        .setFooter({ text: 'Purple Bot Jail System' })
+                        .setTimestamp()],
+                    ephemeral: true
+                });
+            }
+
             // Check if user is jailed
             const jailData = await database.getJailData(targetUser.id, guild.id);
             if (!jailData) {

@@ -41,29 +41,45 @@ module.exports = {
         const guild = interaction.guild;
 
         try {
-            // Check if bot has necessary permissions
-            if (!guild.members.me.permissions.has([PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ManageChannels])) {
-                const errorEmbed = new EmbedBuilder()
-                    .setColor(COLORS.ERROR)
-                    .setTitle('❌ Missing Permissions')
-                    .setDescription('I need **Manage Roles** and **Manage Channels** permissions to jail users.')
-                    .setFooter({ text: 'Purple Bot' })
-                    .setTimestamp();
-
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            // Get the target member
+            const member = await guild.members.fetch(targetUser.id).catch(() => null);
+            if (!member) {
+                return interaction.reply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(COLORS.ERROR)
+                        .setTitle('❌ User Not Found')
+                        .setDescription('The specified user is not in this server.')
+                        .setFooter({ text: 'Purple Bot Jail System' })
+                        .setTimestamp()],
+                    ephemeral: true
+                });
             }
 
-            // Get the target member
-            const targetMember = await guild.members.fetch(targetUser.id).catch(() => null);
-            if (!targetMember) {
-                const errorEmbed = new EmbedBuilder()
-                    .setColor(COLORS.ERROR)
-                    .setTitle('❌ User Not Found')
-                    .setDescription('The specified user is not in this server.')
-                    .setFooter({ text: 'Purple Bot' })
-                    .setTimestamp();
+            // Check bot permissions
+            const botMember = guild.members.me;
+            if (!botMember.permissions.has([PermissionFlagsBits.ManageRoles, PermissionFlagsBits.ManageChannels])) {
+                return interaction.reply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(COLORS.ERROR)
+                        .setTitle('❌ Missing Permissions')
+                        .setDescription('I need **Manage Roles** and **Manage Channels** permissions to jail users.')
+                        .setFooter({ text: 'Purple Bot Jail System' })
+                        .setTimestamp()],
+                    ephemeral: true
+                });
+            }
 
-                return interaction.reply({ embeds: [errorEmbed], ephemeral: true });
+            // Check role hierarchy - bot must be higher than target user
+            if (member.roles.highest.position >= botMember.roles.highest.position) {
+                return interaction.reply({
+                    embeds: [new EmbedBuilder()
+                        .setColor(COLORS.ERROR)
+                        .setTitle('❌ Role Hierarchy Error')
+                        .setDescription(`I cannot jail ${targetUser.tag} because their highest role is equal to or higher than mine.\n\nPlease move my role above theirs in the server settings.`)
+                        .setFooter({ text: 'Purple Bot Jail System' })
+                        .setTimestamp()],
+                    ephemeral: true
+                });
             }
 
             // Check if user is already jailed
