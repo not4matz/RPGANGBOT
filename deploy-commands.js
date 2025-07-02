@@ -12,23 +12,36 @@ if (!fs.existsSync(commandsPath)) {
     process.exit(1);
 }
 
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-
-// Load all command data
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
-    try {
-        const command = require(filePath);
-        if ('data' in command && 'execute' in command) {
-            commands.push(command.data.toJSON());
-            console.log(`✅ Loaded command data: ${command.data.name}`);
-        } else {
-            console.log(`⚠️  Command at ${filePath} is missing required "data" or "execute" property.`);
+// Function to recursively load commands from directories
+function loadCommandsFromDirectory(dirPath) {
+    const items = fs.readdirSync(dirPath);
+    
+    for (const item of items) {
+        const itemPath = path.join(dirPath, item);
+        const stat = fs.statSync(itemPath);
+        
+        if (stat.isDirectory()) {
+            // Recursively load commands from subdirectory
+            loadCommandsFromDirectory(itemPath);
+        } else if (item.endsWith('.js')) {
+            // Load command file
+            try {
+                const command = require(itemPath);
+                if ('data' in command && 'execute' in command) {
+                    commands.push(command.data.toJSON());
+                    console.log(`✅ Loaded command data: ${command.data.name}`);
+                } else {
+                    console.log(`⚠️  Command at ${itemPath} is missing required "data" or "execute" property.`);
+                }
+            } catch (error) {
+                console.error(`❌ Error loading command ${item}:`, error);
+            }
         }
-    } catch (error) {
-        console.error(`❌ Error loading command ${file}:`, error);
     }
 }
+
+// Load all command data recursively
+loadCommandsFromDirectory(commandsPath);
 
 // Construct and prepare an instance of the REST module
 const rest = new REST().setToken(process.env.DISCORD_TOKEN);

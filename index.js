@@ -47,24 +47,38 @@ const loadCommands = () => {
         console.log('📁 Created commands directory');
     }
     
-    const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
-    
-    for (const file of commandFiles) {
-        const filePath = path.join(commandsPath, file);
-        try {
-            delete require.cache[require.resolve(filePath)];
-            const command = require(filePath);
+    // Function to recursively load commands from directories
+    const loadCommandsFromDirectory = (dirPath) => {
+        const items = fs.readdirSync(dirPath);
+        
+        for (const item of items) {
+            const itemPath = path.join(dirPath, item);
+            const stat = fs.statSync(itemPath);
             
-            if ('data' in command && 'execute' in command) {
-                client.commands.set(command.data.name, command);
-                console.log(`✅ Loaded command: ${command.data.name}`);
-            } else {
-                console.log(`⚠️  Command at ${filePath} is missing required "data" or "execute" property.`);
+            if (stat.isDirectory()) {
+                // Recursively load commands from subdirectory
+                loadCommandsFromDirectory(itemPath);
+            } else if (item.endsWith('.js')) {
+                // Load command file
+                try {
+                    delete require.cache[require.resolve(itemPath)];
+                    const command = require(itemPath);
+                    
+                    if ('data' in command && 'execute' in command) {
+                        client.commands.set(command.data.name, command);
+                        console.log(`✅ Loaded command: ${command.data.name}`);
+                    } else {
+                        console.log(`⚠️  Command at ${itemPath} is missing required "data" or "execute" property.`);
+                    }
+                } catch (error) {
+                    console.error(`❌ Error loading command ${item}:`, error);
+                }
             }
-        } catch (error) {
-            console.error(`❌ Error loading command ${file}:`, error);
         }
-    }
+    };
+    
+    // Load all commands recursively
+    loadCommandsFromDirectory(commandsPath);
 };
 
 // Load event handlers
