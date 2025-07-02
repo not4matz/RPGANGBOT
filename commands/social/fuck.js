@@ -1,6 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const colors = require('../../utils/colors');
 
+// Helper function to get display name in both guild and DM contexts
+function getDisplayName(user, interaction) {
+    if (interaction.guild) {
+        const member = interaction.guild.members.cache.get(user.id);
+        return member ? member.displayName : (user.globalName || user.username);
+    }
+    return user.globalName || user.username;
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('fuck') // Replace with your command name (lowercase, no spaces)
@@ -54,10 +63,13 @@ module.exports = {
         }
         
         // Main command execution
+        const authorName = getDisplayName(author, interaction);
+        const targetName = getDisplayName(target, interaction);
+        
         const embed = new EmbedBuilder()
             .setColor(colors.getRandomPurple())
             .setTitle('Fucking Session') // Replace with main command title
-            .setDescription(`You are fucking ${target}💕`) // Replace with main message - use ${author} and ${target} for mentions
+            .setDescription(`**${authorName}** is fucking **${targetName}**💕`) // Replace with main message - use authorName and targetName for display names
             .setThumbnail(target.displayAvatarURL({ dynamic: true }))
             .setFooter({ text: 'Purple Bot Social System' })
             .setTimestamp();

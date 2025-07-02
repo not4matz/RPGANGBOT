@@ -1,6 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const colors = require('../../utils/colors');
 
+// Helper function to get display name in both guild and DM contexts
+function getDisplayName(user, interaction) {
+    if (interaction.guild) {
+        const member = interaction.guild.members.cache.get(user.id);
+        return member ? member.displayName : (user.globalName || user.username);
+    }
+    return user.globalName || user.username;
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('wave')
@@ -27,11 +36,14 @@ module.exports = {
         }
 
         const botMessage = targetUser.bot ? ' *beep boop* 🤖' : '';
+        
+        const authorName = getDisplayName(author, interaction);
+        const targetName = getDisplayName(targetUser, interaction);
 
         const embed = new EmbedBuilder()
             .setColor(colors.getRandomPurple())
             .setTitle('👋 Wave')
-            .setDescription(`**${author.displayName}** waves at **${targetUser.displayName}**! Hello there! 👋💜${botMessage}`)
+            .setDescription(`**${authorName}** waves at **${targetName}**! Hello there! 👋💜${botMessage}`)
             .setThumbnail(targetUser.displayAvatarURL())
             .setFooter({ 
                 text: `Requested by ${author.username} • Purple Bot Social System`,

@@ -1,6 +1,15 @@
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
 const colors = require('../../utils/colors');
 
+// Helper function to get display name in both guild and DM contexts
+function getDisplayName(user, interaction) {
+    if (interaction.guild) {
+        const member = interaction.guild.members.cache.get(user.id);
+        return member ? member.displayName : (user.globalName || user.username);
+    }
+    return user.globalName || user.username;
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('dance')
@@ -27,6 +36,9 @@ module.exports = {
         }
 
         const botMessage = targetUser.bot ? ' *robotic dance moves* 🤖' : '';
+        
+        const authorName = getDisplayName(author, interaction);
+        const targetName = getDisplayName(targetUser, interaction);
 
         const danceEmojis = ['💃', '🕺', '🎵', '🎶', '✨'];
         const randomEmoji = danceEmojis[Math.floor(Math.random() * danceEmojis.length)];
@@ -34,7 +46,7 @@ module.exports = {
         const embed = new EmbedBuilder()
             .setColor(colors.getRandomPurple())
             .setTitle('💃 Dance')
-            .setDescription(`**${author.displayName}** and **${targetUser.displayName}** are dancing together! ${randomEmoji}🎵💜${botMessage}`)
+            .setDescription(`**${authorName}** and **${targetName}** are dancing together! ${randomEmoji}🎵💜${botMessage}`)
             .setThumbnail(targetUser.displayAvatarURL())
             .setFooter({ 
                 text: `Requested by ${author.username} • Purple Bot Social System`,
